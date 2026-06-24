@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>救急活動 タイムスタンプ記録</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red: #C0392B;
+    --red-dark: #96281B;
+    --red-light: #E74C3C;
+    --navy: #1A2A3A;
+    --navy-light: #243447;
+    --cream: #F5F0E8;
+    --gold: #D4AC0D;
+    --gray: #7F8C8D;
+    --light: #ECF0F1;
+    --white: #FFFFFF;
+    --green: #27AE60;
+    --orange: #E67E22;
+  }
+
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    min-height: 100vh;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* === HEADER === */
+  header {
+    background: var(--red);
+    padding: 12px 16px 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+  .badge {
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    font-size: 10px;
+    padding: 2px 8px;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+  .clock {
+    font-size: 32px;
+    font-weight: 200;
+    letter-spacing: 4px;
+    font-variant-numeric: tabular-nums;
+    margin-top: 4px;
+    text-align: center;
+  }
+  .elapsed-bar {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 4px;
+    font-size: 11px;
+    opacity: 0.75;
+    letter-spacing: 1px;
+  }
+  .elapsed-val { font-weight: 700; color: var(--gold); }
+
+  /* === PATIENT INFO === */
+  .info-section {
+    background: var(--navy-light);
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .info-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+  }
+  .info-row:last-child { margin-bottom: 0; }
+  .info-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--gold);
+    font-weight: 700;
+    text-transform: uppercase;
+    width: 60px;
+    flex-shrink: 0;
+  }
+  .info-input {
+    flex: 1;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    color: var(--white);
+    font-size: 14px;
+    padding: 6px 10px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  .info-input:focus {
+    border-color: var(--gold);
+    background: rgba(255,255,255,0.1);
+  }
+  select.info-input option { background: var(--navy); }
+
+  /* === PHASE INDICATOR === */
+  .phase-bar {
+    display: flex;
+    overflow-x: auto;
+    gap: 4px;
+    padding: 10px 16px;
+    background: var(--navy);
+    scrollbar-width: none;
+  }
+  .phase-bar::-webkit-scrollbar { display: none; }
+  .phase-pill {
+    flex-shrink: 0;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+  .phase-pill.done { border-color: var(--green); color: var(--green); background: rgba(39,174,96,0.1); }
+  .phase-pill.active { border-color: var(--red-light); color: var(--white); background: var(--red); }
+
+  /* === ACTION BUTTONS === */
+  .section-title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 12px 16px 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+  }
+
+  .btn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 0 16px 12px;
+  }
+  .btn-grid.single { grid-template-columns: 1fr; }
+
+  .act-btn {
+    background: var(--navy-light);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    color: var(--white);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 14px 10px;
+    text-align: center;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+    line-height: 1.3;
+  }
+  .act-btn .btn-time {
+    display: block;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--gold);
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .act-btn:active { transform: scale(0.96); }
+  .act-btn.pressed {
+    background: rgba(39,174,96,0.15);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .act-btn.pressed .btn-time { color: var(--green); }
+  .btn-elapsed {
+    display: block;
+    font-size: 9px;
+    font-weight: 600;
+    margin-top: 2px;
+    color: rgba(255,255,255,0.55);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5px;
+  }
+  .act-btn.pressed .btn-elapsed { color: rgba(39,174,96,0.8); }
+
+  /* Phase-specific colors */
+  .act-btn[data-phase="dispatch"] { border-color: rgba(231,76,60,0.4); }
+  .act-btn[data-phase="scene"] { border-color: rgba(52,152,219,0.4); }
+  .act-btn[data-phase="treatment"] { border-color: rgba(155,89,182,0.4); }
+  .act-btn[data-phase="transport"] { border-color: rgba(230,126,34,0.4); }
+  .act-btn[data-phase="hospital"] { border-color: rgba(39,174,96,0.4); }
+
+  /* === LOG === */
+  .log-section {
+    background: var(--navy-light);
+    margin: 0 16px 16px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .log-header {
+    background: rgba(255,255,255,0.05);
+    padding: 8px 14px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    font-weight: 700;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .log-count {
+    background: var(--red);
+    border-radius: 20px;
+    font-size: 10px;
+    padding: 1px 8px;
+    color: white;
+    font-weight: 700;
+  }
+  .log-list { max-height: 320px; overflow-y: auto; }
+  .log-col-header {
+    display: grid;
+    grid-template-columns: 58px 1fr 90px;
+    gap: 6px;
+    padding: 5px 14px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 10px;
+    color: var(--gray);
+    letter-spacing: 1px;
+  }
+  .log-item {
+    display: grid;
+    grid-template-columns: 58px 1fr 90px;
+    gap: 6px;
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    align-items: center;
+    font-size: 13px;
+  }
+  .log-item:last-child { border-bottom: none; }
+  .log-time { font-variant-numeric: tabular-nums; color: var(--gold); font-size: 12px; font-weight: 700; }
+  .log-label { font-size: 12px; }
+  .log-elapsed {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .log-elapsed.before { color: #5DADE2; }
+  .log-elapsed.after  { color: var(--green); }
+  .log-elapsed.zero   { color: var(--gold); }
+  .log-empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--gray);
+    font-size: 13px;
+  }
+
+  /* === MEMO === */
+  .memo-wrap { padding: 0 16px 12px; }
+  textarea.memo-input {
+    width: 100%;
+    background: var(--navy-light);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: var(--white);
+    font-size: 13px;
+    padding: 10px 12px;
+    resize: vertical;
+    outline: none;
+    min-height: 70px;
+    font-family: inherit;
+  }
+  textarea.memo-input:focus { border-color: var(--gold); }
+
+  /* === BOTTOM ACTIONS === */
+  .bottom-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 0 16px 24px;
+  }
+  .action-btn {
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 14px;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+  }
+  .action-btn:active { transform: scale(0.96); }
+  .btn-reset { background: rgba(255,255,255,0.08); color: var(--light); }
+  .btn-pdf { background: var(--red); color: var(--white); grid-column: 1 / -1; font-size: 15px; }
+
+  /* === MODAL === */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--navy-light);
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 340px;
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .modal h3 { font-size: 16px; margin-bottom: 8px; color: var(--gold); }
+  .modal p { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 20px; line-height: 1.6; }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btn { flex: 1; border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .modal-cancel { background: rgba(255,255,255,0.1); color: var(--white); }
+  .modal-confirm { background: var(--red); color: var(--white); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="header-top">
+    <span class="header-title">🚑 救急活動記録</span>
+    <span class="badge">訓練</span>
+  </div>
+  <div class="clock" id="clock">--:--:--</div>
+  <div class="elapsed-bar">
+    <span>出動から <span class="elapsed-val" id="elapsedDispatch">--:--</span></span>
+    <span>接触から <span class="elapsed-val" id="elapsedContact">--:--</span></span>
+  </div>
+</header>
+
+<!-- Patient Info -->
+<div class="info-section">
+  <div class="info-row">
+    <span class="info-label">案件番号</span>
+    <input type="text" class="info-input" id="caseNo" placeholder="例）R06-0001">
+  </div>
+  <div class="info-row">
+    <span class="info-label">傷病者</span>
+    <input type="text" class="info-input" id="patientName" placeholder="氏名または仮称">
+    <select class="info-input" id="patientAge" style="width:80px;flex:none">
+      <option value="">年代</option>
+      <option>10代</option><option>20代</option><option>30代</option>
+      <option>40代</option><option>50代</option><option>60代</option>
+      <option>70代</option><option>80代</option><option>90代以上</option>
+    </select>
+  </div>
+  <div class="info-row">
+    <span class="info-label">覚知区分</span>
+    <select class="info-input" id="callType">
+      <option value="">選択</option>
+      <option>急病</option><option>外傷</option><option>交通事故</option>
+      <option>転院搬送</option><option>その他</option>
+    </select>
+    <select class="info-input" id="severity" style="width:80px;flex:none">
+      <option value="">重症度</option>
+      <option>軽症</option><option>中等症</option><option>重症</option><option>重篤</option>
+    </select>
+  </div>
+</div>
+
+<!-- Phase Indicator -->
+<div class="phase-bar" id="phaseBar">
+  <div class="phase-pill active" data-phase="dispatch">出動</div>
+  <div class="phase-pill" data-phase="scene">現着</div>
+  <div class="phase-pill" data-phase="treatment">処置</div>
+  <div class="phase-pill" data-phase="transport">搬送</div>
+  <div class="phase-pill" data-phase="hospital">病着</div>
+</div>
+
+<!-- Phase 1: 出動・覚知 -->
+<div class="section-title">出動・覚知</div>
+<div class="btn-grid">
+  <button class="act-btn" data-phase="dispatch" data-key="dispatch_notice" onclick="stamp(this)">🔔 覚知<span class="btn-time" id="t_dispatch_notice">未記録</span></button>
+  <button class="act-btn" data-phase="dispatch" data-key="dispatch_out" onclick="stamp(this)">🚑 出動<span class="btn-time" id="t_dispatch_out">未記録</span></button>
+</div>
+
+<!-- Phase 2: 現場到着 -->
+<div class="section-title">現場到着</div>
+<div class="btn-grid">
+  <button class="act-btn" data-phase="scene" data-key="scene_arrive" onclick="stamp(this)">📍 現着<span class="btn-time" id="t_scene_arrive">未記録</span></button>
+  <button class="act-btn" data-phase="scene" data-key="patient_contact" onclick="stamp(this)">👤 傷病者接触<span class="btn-time" id="t_patient_contact">未記録</span></button>
+</div>
+
+<!-- Phase 3a: 評価 -->
+<div class="section-title">評価</div>
+<div class="btn-grid">
+  <button class="act-btn" data-phase="treatment" data-key="assess_primary" onclick="stamp(this)">🔍 生理学的評価開始<span class="btn-time" id="t_assess_primary">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="assess_secondary" onclick="stamp(this)">📋 二次評価開始<span class="btn-time" id="t_assess_secondary">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="rosc" onclick="stamp(this)">💓 ROSC確認<span class="btn-time" id="t_rosc">未記録</span></button>
+</div>
+
+<!-- Phase 3b: 処置 -->
+<div class="section-title">処置</div>
+<div class="btn-grid">
+  <button class="act-btn" data-phase="treatment" data-key="airway" onclick="stamp(this)">💨 気道確保<span class="btn-time" id="t_airway">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="assist_ventilation" onclick="stamp(this)">🫁 補助換気開始<span class="btn-time" id="t_assist_ventilation">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="o2_start" onclick="stamp(this)">💨 酸素投与<span class="btn-time" id="t_o2_start">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="cpr_start" onclick="stamp(this)">❤️ CPR開始<span class="btn-time" id="t_cpr_start">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="aed_analysis" onclick="stamp(this)">⚡ AED解析<span class="btn-time" id="t_aed_analysis">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="aed_shock" onclick="stamp(this)">⚡ 除細動実施<span class="btn-time" id="t_aed_shock">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="iv_access" onclick="stamp(this)">💉 静脈路確保<span class="btn-time" id="t_iv_access">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="stretcher" onclick="stamp(this)">🛏️ ストレッチャー収容<span class="btn-time" id="t_stretcher">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="car_load" onclick="stamp(this)">🚑 車内収容<span class="btn-time" id="t_car_load">未記録</span></button>
+</div>
+
+<!-- Phase 4: 搬送 -->
+<div class="section-title">搬送・病院選定</div>
+<div class="btn-grid">
+  <button class="act-btn" data-phase="transport" data-key="hospital_select" onclick="stamp(this)">📞 病院選定完了<span class="btn-time" id="t_hospital_select">未記録</span></button>
+  <button class="act-btn" data-phase="transport" data-key="transport_start" onclick="stamp(this)">🚗 現場出発<span class="btn-time" id="t_transport_start">未記録</span></button>
+</div>
+
+<!-- Phase 5: 病院到着 -->
+<div class="section-title">病院到着</div>
+<div class="btn-grid">
+  <button class="act-btn" data-phase="hospital" data-key="hospital_arrive" onclick="stamp(this)">🏥 病着<span class="btn-time" id="t_hospital_arrive">未記録</span></button>
+  <button class="act-btn" data-phase="hospital" data-key="handover" onclick="stamp(this)">📋 引き継ぎ完了<span class="btn-time" id="t_handover">未記録</span></button>
+</div>
+
+<!-- Memo -->
+<div class="section-title">メモ</div>
+<div class="memo-wrap">
+  <textarea class="memo-input" id="memo" placeholder="訓練メモ・特記事項など..."></textarea>
+</div>
+
+<!-- Log -->
+<div class="section-title" style="padding-top:0">記録ログ</div>
+<div class="log-section">
+  <div class="log-header">
+    タイムスタンプ一覧
+    <span class="log-count" id="logCount">0件</span>
+  </div>
+  <div class="log-list" id="logList">
+    <div class="log-empty">まだ記録がありません</div>
+  </div>
+</div>
+
+<!-- Bottom Actions -->
+<div class="bottom-actions">
+  <button class="action-btn btn-reset" onclick="confirmReset()">🔄 リセット</button>
+  <button class="action-btn btn-pdf" onclick="generatePDF()">📄 PDFレポート出力</button>
+</div>
+
+<!-- Reset Modal -->
+<div class="modal-overlay" id="resetModal">
+  <div class="modal">
+    <h3>⚠️ リセット確認</h3>
+    <p>すべての記録が削除されます。<br>この操作は元に戻せません。</p>
+    <div class="modal-btns">
+      <button class="modal-btn modal-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="modal-btn modal-confirm" onclick="doReset()">リセット</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === STATE ===
+let log = [];
+let startTime = null;
+let contactTime = null;
+let clockInterval = null;
+
+const LABELS = {
+  dispatch_notice: '覚知',
+  dispatch_out: '出動',
+  scene_arrive: '現着',
+  patient_contact: '傷病者接触',
+  assess_primary: '生理学的評価開始',
+  assess_secondary: '二次評価開始',
+  assist_ventilation: '補助換気開始',
+  car_load: '車内収容',
+  cpr_start: 'CPR開始',
+  aed_analysis: 'AED解析',
+  aed_shock: '除細動実施',
+  airway: '気道確保',
+  iv_access: '静脈路確保',
+  o2_start: '酸素投与',
+  stretcher: 'ストレッチャー収容',
+  rosc: 'ROSC確認',
+  hospital_select: '病院選定完了',
+  transport_start: '現場出発',
+  hospital_arrive: '病着',
+  handover: '引き継ぎ完了'
+};
+
+// === CLOCK ===
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+
+  if (startTime) {
+    const diff = Math.floor((now - startTime) / 1000);
+    document.getElementById('elapsedDispatch').textContent = fmtElapsed(diff);
+  }
+  if (contactTime) {
+    const diff = Math.floor((now - contactTime) / 1000);
+    document.getElementById('elapsedContact').textContent = fmtElapsed(diff);
+  }
+}
+
+function fmtElapsed(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function fmtTime(date) {
+  const h = String(date.getHours()).padStart(2,'0');
+  const m = String(date.getMinutes()).padStart(2,'0');
+  const s = String(date.getSeconds()).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
+
+clockInterval = setInterval(updateClock, 1000);
+updateClock();
+
+// === STAMP ===
+function stamp(btn) {
+  const key = btn.dataset.key;
+  const now = new Date();
+
+  // Set start reference
+  if (key === 'dispatch_notice' || key === 'dispatch_out') {
+    if (!startTime) startTime = now;
+  }
+  if (key === 'patient_contact') {
+    contactTime = now;
+    document.getElementById('elapsedContact').textContent = '00:00';
+    // 接触記録後、それ以前のログの elapsed を再計算して更新
+    log.forEach(item => {
+      const diffSec = Math.floor((item.time - contactTime) / 1000);
+      item.elapsed = fmtContactElapsed(diffSec);
+    });
+  }
+
+  const timeStr = fmtTime(now);
+  const label = LABELS[key] || key;
+
+  // 接触からの経過時間を算出（接触前はマイナス表示）
+  let elapsedStr = '---';
+  let elapsedSec = null;
+  if (contactTime) {
+    elapsedSec = Math.floor((now - contactTime) / 1000);
+    elapsedStr = fmtContactElapsed(elapsedSec);
+  } else if (key === 'patient_contact') {
+    elapsedStr = '接触 0:00';
+    elapsedSec = 0;
+  }
+
+  // Update button (時刻 + 接触からの経過)
+  btn.classList.add('pressed');
+  const btnTime = btn.querySelector('.btn-time');
+  btnTime.textContent = timeStr;
+  // 接触経過サブラベルがあれば更新、なければ追加
+  let btnElapsed = btn.querySelector('.btn-elapsed');
+  if (!btnElapsed) {
+    btnElapsed = document.createElement('span');
+    btnElapsed.className = 'btn-elapsed';
+    btn.appendChild(btnElapsed);
+  }
+  btnElapsed.textContent = contactTime || key === 'patient_contact' ? elapsedStr : '';
+
+  // Add to log
+  log.push({ time: now, timeStr, label, elapsed: elapsedStr, elapsedSec, key });
+  renderLog();
+  updatePhaseBar();
+}
+
+// 接触基準の経過時間フォーマット（前後を表示）
+function fmtContactElapsed(sec) {
+  if (sec === 0) return '接触 +0:00';
+  const abs = Math.abs(sec);
+  const m = Math.floor(abs / 60);
+  const s = abs % 60;
+  const sign = sec < 0 ? '前' : '後';
+  return `接触${sign} ${sec < 0 ? '-' : '+'}${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// === LOG ===
+function renderLog() {
+  const list = document.getElementById('logList');
+  document.getElementById('logCount').textContent = `${log.length}件`;
+
+  if (log.length === 0) {
+    list.innerHTML = '<div class="log-empty">まだ記録がありません</div>';
+    return;
+  }
+
+  const header = `<div class="log-col-header"><span>時刻</span><span>活動内容</span><span style="text-align:right">接触からの時間</span></div>`;
+
+  const rows = log.map((item) => {
+    let cls = 'log-elapsed';
+    if (item.elapsedSec === null || item.elapsedSec === undefined) cls += ' before';
+    else if (item.elapsedSec < 0) cls += ' before';
+    else if (item.elapsedSec === 0) cls += ' zero';
+    else cls += ' after';
+    const elapsed = item.elapsed || '---';
+    return `
+      <div class="log-item">
+        <span class="log-time">${item.timeStr}</span>
+        <span class="log-label">${item.label}</span>
+        <span class="${cls}">${elapsed}</span>
+      </div>`;
+  }).join('');
+
+  list.innerHTML = header + rows;
+  list.scrollTop = list.scrollHeight;
+}
+
+// === PHASE BAR ===
+const PHASE_ORDER = ['dispatch','scene','treatment','transport','hospital'];
+const PHASE_KEYS = {
+  dispatch: ['dispatch_notice','dispatch_out'],
+  scene: ['scene_arrive','patient_contact'],
+  treatment: ['assess_primary','assess_secondary','rosc','airway','assist_ventilation','o2_start','cpr_start','aed_analysis','aed_shock','iv_access','stretcher','car_load'],
+  transport: ['hospital_select','transport_start'],
+  hospital: ['hospital_arrive','handover']
+};
+
+function updatePhaseBar() {
+  const donePhases = new Set();
+  const activePhases = new Set();
+  const recordedKeys = new Set(log.map(l => l.key));
+
+  PHASE_ORDER.forEach(phase => {
+    const keys = PHASE_KEYS[phase];
+    if (keys.some(k => recordedKeys.has(k))) activePhases.add(phase);
+  });
+
+  // Mark phases done if next phase started
+  PHASE_ORDER.forEach((phase, i) => {
+    if (i < PHASE_ORDER.length - 1) {
+      const nextPhase = PHASE_ORDER[i + 1];
+      if (activePhases.has(nextPhase)) donePhases.add(phase);
+    }
+  });
+
+  document.querySelectorAll('.phase-pill').forEach(pill => {
+    const p = pill.dataset.phase;
+    pill.className = 'phase-pill';
+    if (donePhases.has(p)) pill.classList.add('done');
+    else if (activePhases.has(p)) pill.classList.add('active');
+  });
+}
+
+// === RESET ===
+function confirmReset() {
+  document.getElementById('resetModal').classList.add('active');
+}
+function closeModal() {
+  document.getElementById('resetModal').classList.remove('active');
+}
+function doReset() {
+  log = [];
+  startTime = null;
+  contactTime = null;
+  document.querySelectorAll('.act-btn').forEach(btn => {
+    btn.classList.remove('pressed');
+    btn.querySelector('.btn-time').textContent = '未記録';
+  });
+  document.getElementById('elapsedDispatch').textContent = '--:--';
+  document.getElementById('elapsedContact').textContent = '--:--';
+  document.getElementById('memo').value = '';
+  document.getElementById('caseNo').value = '';
+  document.getElementById('patientName').value = '';
+  document.getElementById('patientAge').value = '';
+  document.getElementById('callType').value = '';
+  document.getElementById('severity').value = '';
+  renderLog();
+  document.querySelectorAll('.phase-pill').forEach((p, i) => {
+    p.className = 'phase-pill' + (i === 0 ? ' active' : '');
+  });
+  closeModal();
+}
+
+// === PDF GENERATION ===
+async function generatePDF() {
+  if (log.length === 0) {
+    alert('記録がありません。まずタイムスタンプを記録してください。');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  const timeStr = fmtTime(now);
+
+  const caseNo = document.getElementById('caseNo').value || '未入力';
+  const patientName = document.getElementById('patientName').value || '未入力';
+  const patientAge = document.getElementById('patientAge').value || '未入力';
+  const callType = document.getElementById('callType').value || '未入力';
+  const severity = document.getElementById('severity').value || '未入力';
+  const memo = document.getElementById('memo').value || 'なし';
+
+  // Load Japanese font (NotoSans base64 embedded via Google Fonts CDN is not possible in jsPDF directly)
+  // We'll use a workaround with canvas for Japanese text rendering
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = 595 * 2; // A4 at 2x
+  canvas.height = 842 * 2;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Header bar
+  ctx.fillStyle = '#C0392B';
+  ctx.fillRect(0, 0, canvas.width, 100);
+
+  // Header text
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 36px sans-serif';
+  ctx.fillText('🚑 救急活動 タイムスタンプ記録', 40, 52);
+  ctx.font = '22px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.fillText(`訓練記録　${dateStr}　${timeStr}作成`, 40, 80);
+
+  // Badge
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  roundRect(ctx, canvas.width - 140, 30, 100, 36, 8);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillText('訓練', canvas.width - 112, 54);
+
+  // Info section
+  let y = 130;
+  ctx.fillStyle = '#F5F5F5';
+  ctx.fillRect(40, y, canvas.width - 80, 170);
+  ctx.fillStyle = '#C0392B';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillText('▍ 基本情報', 52, y + 30);
+
+  ctx.fillStyle = '#333';
+  ctx.font = '18px sans-serif';
+  const infoItems = [
+    ['案件番号', caseNo],
+    ['傷病者', `${patientName}　${patientAge}`],
+    ['覚知区分', `${callType}　重症度：${severity}`]
+  ];
+  infoItems.forEach((item, i) => {
+    ctx.fillStyle = '#999';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(item[0], 60, y + 60 + i * 38);
+    ctx.fillStyle = '#222';
+    ctx.font = '18px sans-serif';
+    ctx.fillText(item[1], 180, y + 60 + i * 38);
+  });
+
+  // Timeline section
+  y = 330;
+  ctx.fillStyle = '#1A2A3A';
+  ctx.fillRect(40, y, canvas.width - 80, 36);
+  ctx.fillStyle = '#D4AC0D';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('タイムライン記録', 52, y + 24);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.fillText('時刻', 420, y + 24);
+  ctx.fillText('経過時間', 560, y + 24);
+
+  y += 40;
+  log.forEach((item, i) => {
+    const rowBg = i % 2 === 0 ? '#FAFAFA' : '#FFFFFF';
+    ctx.fillStyle = rowBg;
+    ctx.fillRect(40, y, canvas.width - 80, 38);
+
+    // Phase dot color
+    const phaseColors = {
+      dispatch: '#E74C3C', scene: '#3498DB',
+      treatment: '#9B59B6', transport: '#E67E22', hospital: '#27AE60'
+    };
+    const phaseKey = Object.keys(PHASE_KEYS).find(p => PHASE_KEYS[p].includes(item.key));
+    ctx.fillStyle = phaseColors[phaseKey] || '#999';
+    ctx.beginPath();
+    ctx.arc(64, y + 19, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#222';
+    ctx.font = '18px sans-serif';
+    ctx.fillText(item.label, 80, y + 25);
+
+    ctx.fillStyle = '#C0392B';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText(item.timeStr, 400, y + 25);
+
+    ctx.fillStyle = '#666';
+    ctx.font = '16px sans-serif';
+    ctx.fillText(item.elapsed || '---', 480, y + 25);
+
+    y += 38;
+  });
+
+  // Memo
+  y += 20;
+  ctx.fillStyle = '#F5F5F5';
+  ctx.fillRect(40, y, canvas.width - 80, 100);
+  ctx.fillStyle = '#C0392B';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('▍ 特記事項・メモ', 52, y + 28);
+  ctx.fillStyle = '#333';
+  ctx.font = '16px sans-serif';
+  const memoLines = memo.match(/.{1,50}/g) || [memo];
+  memoLines.slice(0, 3).forEach((line, i) => {
+    ctx.fillText(line, 60, y + 54 + i * 24);
+  });
+
+  // Footer
+  y = canvas.height - 60;
+  ctx.fillStyle = '#EEEEEE';
+  ctx.fillRect(0, y, canvas.width, 60);
+  ctx.fillStyle = '#999';
+  ctx.font = '14px sans-serif';
+  ctx.fillText(`救急活動タイムスタンプ記録システム　訓練用　記録数：${log.length}件`, 40, y + 36);
+
+  // Convert canvas to PDF
+  const imgData = canvas.toDataURL('image/png');
+  doc.addImage(imgData, 'PNG', 0, 0, 210, 297);
+
+  const filename = `救急記録_${caseNo}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.pdf`;
+  doc.save(filename);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+</script>
+</body>
+</html>
