@@ -209,6 +209,50 @@
     letter-spacing: 0.5px;
   }
   .act-btn.pressed .btn-elapsed { color: rgba(39,174,96,0.8); }
+  .dur-banner {
+    margin: 0 16px 8px;
+    background: rgba(212,172,13,0.1);
+    border: 1.5px solid var(--gold);
+    border-radius: 10px;
+    padding: 9px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .dur-label { font-size:11px; color:var(--gold); font-weight:700; letter-spacing:1px; margin-bottom:6px; }
+  .dur-banner-multi { flex-direction: column; align-items: stretch; }
+  .dur-list { display: flex; flex-direction: column; gap: 4px; }
+  .dur-row {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+  .dur-row-num { color: var(--gold); font-weight:700; font-size:11px; text-align:center; }
+  .dur-row-range { color: var(--gray); font-size:11px; }
+  .dur-row-val { color: var(--white); font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .dur-range { font-size:10px; color:var(--gray); }
+  .dur-val { font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--white); white-space:nowrap; }
+
+  .toggle-btn[data-state="idle"] { border-color: rgba(255,255,255,0.15); }
+  .toggle-btn[data-state="running"] {
+    border-color: var(--red-light);
+    background: rgba(231,76,60,0.15);
+    animation: pulse-border 1.2s ease-in-out infinite;
+  }
+  .toggle-btn[data-state="running"] .toggle-label { color: var(--red-light); }
+  .toggle-btn[data-state="running"] .btn-time { color: var(--red-light); }
+  .toggle-btn[data-state="done"] { border-color: var(--green); background: rgba(39,174,96,0.12); }
+  .toggle-btn[data-state="done"] .toggle-label { color: var(--green); }
+  .toggle-btn[data-state="done"] .btn-time { color: var(--green); }
+  @keyframes pulse-border {
+    0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(231,76,60,0); }
+  }
 
   /* Phase-specific colors */
   .act-btn[data-phase="dispatch"] { border-color: rgba(231,76,60,0.4); }
@@ -406,25 +450,32 @@
   <div class="phase-pill" data-phase="hospital">病着</div>
 </div>
 
-<!-- Phase 1: 出動・覚知 -->
-<div class="section-title">出動・覚知</div>
+<!-- Phase 1+2: 出動・現場到着 -->
+<div class="section-title">出動・現場到着</div>
 <div class="btn-grid">
-  <button class="act-btn" data-phase="dispatch" data-key="dispatch_notice" onclick="stamp(this)">🔔 覚知<span class="btn-time" id="t_dispatch_notice">未記録</span></button>
   <button class="act-btn" data-phase="dispatch" data-key="dispatch_out" onclick="stamp(this)">🚑 出動<span class="btn-time" id="t_dispatch_out">未記録</span></button>
-</div>
-
-<!-- Phase 2: 現場到着 -->
-<div class="section-title">現場到着</div>
-<div class="btn-grid">
-  <button class="act-btn" data-phase="scene" data-key="scene_arrive" onclick="stamp(this)">📍 現着<span class="btn-time" id="t_scene_arrive">未記録</span></button>
   <button class="act-btn" data-phase="scene" data-key="patient_contact" onclick="stamp(this)">👤 傷病者接触<span class="btn-time" id="t_patient_contact">未記録</span></button>
 </div>
 
 <!-- Phase 3a: 評価 -->
 <div class="section-title">評価</div>
 <div class="btn-grid">
-  <button class="act-btn" data-phase="treatment" data-key="assess_primary" onclick="stamp(this)">🔍 生理学的評価開始<span class="btn-time" id="t_assess_primary">未記録</span></button>
-  <button class="act-btn" data-phase="treatment" data-key="assess_secondary" onclick="stamp(this)">📋 二次評価開始<span class="btn-time" id="t_assess_secondary">未記録</span></button>
+  <button class="act-btn toggle-btn" id="btn_assess_primary" data-phase="treatment" data-state="idle"
+    data-key-start="assess_primary_start" data-key-end="assess_primary_end"
+    data-label-idle="🔍 生理学的評価開始" data-label-running="🔍 生理学的評価中…" data-label-done="✅ 生理学的評価完了"
+    data-banner="banner_assess_primary" onclick="toggleMeasure(this)">
+    <span class="toggle-label">🔍 生理学的評価開始</span>
+    <span class="btn-time">タップで開始</span>
+    <span class="btn-elapsed"></span>
+  </button>
+  <button class="act-btn toggle-btn" id="btn_assess_secondary" data-phase="treatment" data-state="idle"
+    data-key-start="assess_secondary_start" data-key-end="assess_secondary_end"
+    data-label-idle="📋 二次評価開始" data-label-running="📋 二次評価中…" data-label-done="✅ 二次評価完了"
+    data-banner="banner_assess_secondary" onclick="toggleMeasure(this)">
+    <span class="toggle-label">📋 二次評価開始</span>
+    <span class="btn-time">タップで開始</span>
+    <span class="btn-elapsed"></span>
+  </button>
   <button class="act-btn" data-phase="treatment" data-key="rosc" onclick="stamp(this)">💓 ROSC確認<span class="btn-time" id="t_rosc">未記録</span></button>
 </div>
 
@@ -435,18 +486,59 @@
   <button class="act-btn" data-phase="treatment" data-key="assist_ventilation" onclick="stamp(this)">🫁 補助換気開始<span class="btn-time" id="t_assist_ventilation">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="o2_start" onclick="stamp(this)">💨 酸素投与<span class="btn-time" id="t_o2_start">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="cpr_start" onclick="stamp(this)">❤️ CPR開始<span class="btn-time" id="t_cpr_start">未記録</span></button>
-  <button class="act-btn" data-phase="treatment" data-key="aed_analysis" onclick="stamp(this)">⚡ AED解析<span class="btn-time" id="t_aed_analysis">未記録</span></button>
+  <button class="act-btn toggle-btn" id="btn_aed_analysis" data-phase="treatment" data-state="idle"
+    data-key-start="aed_analysis_start" data-key-end="aed_analysis_end"
+    data-label-idle="⚡ AED解析開始" data-label-running="⚡ AED解析中…" data-label-done="✅ AED解析完了"
+    data-banner="banner_aed_analysis" onclick="toggleMeasure(this)">
+    <span class="toggle-label">⚡ AED解析開始</span>
+    <span class="btn-time">タップで開始</span>
+    <span class="btn-elapsed"></span>
+  </button>
   <button class="act-btn" data-phase="treatment" data-key="aed_shock" onclick="stamp(this)">⚡ 除細動実施<span class="btn-time" id="t_aed_shock">未記録</span></button>
-  <button class="act-btn" data-phase="treatment" data-key="iv_access" onclick="stamp(this)">💉 静脈路確保<span class="btn-time" id="t_iv_access">未記録</span></button>
+  <button class="act-btn toggle-btn" id="btn_iv_access" data-phase="treatment" data-state="idle"
+    data-key-start="iv_access_start" data-key-end="iv_access_end"
+    data-label-idle="💉 静脈路確保開始" data-label-running="💉 静脈路確保中…" data-label-done="✅ 静脈路確保完了"
+    data-banner="banner_iv_access" onclick="toggleMeasure(this)">
+    <span class="toggle-label">💉 静脈路確保開始</span>
+    <span class="btn-time">タップで開始</span>
+    <span class="btn-elapsed"></span>
+  </button>
   <button class="act-btn" data-phase="treatment" data-key="stretcher" onclick="stamp(this)">🛏️ ストレッチャー収容<span class="btn-time" id="t_stretcher">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="car_load" onclick="stamp(this)">🚑 車内収容<span class="btn-time" id="t_car_load">未記録</span></button>
+</div>
+
+<!-- 所要時間バナー群 -->
+<div id="banner_assess_primary" class="dur-banner dur-banner-multi" style="display:none">
+  <div class="dur-label">🔍 生理学的評価　計測履歴</div>
+  <div class="dur-list" id="list_assess_primary"></div>
+</div>
+<div id="banner_assess_secondary" class="dur-banner dur-banner-multi" style="display:none">
+  <div class="dur-label">📋 二次評価　計測履歴</div>
+  <div class="dur-list" id="list_assess_secondary"></div>
+</div>
+<div id="banner_aed_analysis" class="dur-banner dur-banner-multi" style="display:none">
+  <div class="dur-label">⚡ AED解析　計測履歴</div>
+  <div class="dur-list" id="list_aed_analysis"></div>
+</div>
+<div id="banner_iv_access" class="dur-banner dur-banner-multi" style="display:none">
+  <div class="dur-label">💉 静脈路確保　計測履歴</div>
+  <div class="dur-list" id="list_iv_access"></div>
 </div>
 
 <!-- Phase 4: 搬送 -->
 <div class="section-title">搬送・病院選定</div>
 <div class="btn-grid">
-  <button class="act-btn" data-phase="transport" data-key="hospital_select" onclick="stamp(this)">📞 病院選定完了<span class="btn-time" id="t_hospital_select">未記録</span></button>
+  <button class="act-btn toggle-btn" id="btn_hospital_call" data-phase="transport" data-state="idle" onclick="toggleHospitalCall(this)">
+    <span class="toggle-label">📞 病院連絡開始</span>
+    <span class="btn-time" id="t_hospital_call_start">タップで開始</span>
+    <span class="btn-elapsed"></span>
+  </button>
   <button class="act-btn" data-phase="transport" data-key="transport_start" onclick="stamp(this)">🚗 現場出発<span class="btn-time" id="t_transport_start">未記録</span></button>
+</div>
+<!-- 病院連絡所要時間バナー -->
+<div id="callDurationBanner" class="dur-banner dur-banner-multi" style="display:none">
+  <div class="dur-label">📞 病院連絡　計測履歴</div>
+  <div class="dur-list" id="list_hospital_call"></div>
 </div>
 
 <!-- Phase 5: 病院到着 -->
@@ -472,6 +564,12 @@
   <div class="log-list" id="logList">
     <div class="log-empty">まだ記録がありません</div>
   </div>
+</div>
+
+<!-- Timeline Chart -->
+<div class="section-title" id="timelineTitle" style="display:none">活動タイムライン</div>
+<div id="timelineWrap" style="display:none;margin:0 16px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+  <canvas id="timelineCanvas" style="display:block;border-radius:10px;"></canvas>
 </div>
 
 <!-- Bottom Actions -->
@@ -500,9 +598,7 @@ let contactTime = null;
 let clockInterval = null;
 
 const LABELS = {
-  dispatch_notice: '覚知',
   dispatch_out: '出動',
-  scene_arrive: '現着',
   patient_contact: '傷病者接触',
   assess_primary: '生理学的評価開始',
   assess_secondary: '二次評価開始',
@@ -516,7 +612,16 @@ const LABELS = {
   o2_start: '酸素投与',
   stretcher: 'ストレッチャー収容',
   rosc: 'ROSC確認',
-  hospital_select: '病院選定完了',
+  assess_primary_start: '生理学的評価開始',
+  assess_primary_end: '生理学的評価完了',
+  assess_secondary_start: '二次評価開始',
+  assess_secondary_end: '二次評価完了',
+  aed_analysis_start: 'AED解析開始',
+  aed_analysis_end: 'AED解析完了',
+  iv_access_start: '静脈路確保開始',
+  iv_access_end: '静脈路確保完了',
+  hospital_call_start: '病院連絡開始',
+  hospital_call_end: '病院連絡完了（選定）',
   transport_start: '現場出発',
   hospital_arrive: '病着',
   handover: '引き継ぎ完了'
@@ -562,7 +667,7 @@ function stamp(btn) {
   const now = new Date();
 
   // Set start reference
-  if (key === 'dispatch_notice' || key === 'dispatch_out') {
+  if (key === 'dispatch_out') {
     if (!startTime) startTime = now;
   }
   if (key === 'patient_contact') {
@@ -605,6 +710,7 @@ function stamp(btn) {
   // Add to log
   log.push({ time: now, timeStr, label, elapsed: elapsedStr, elapsedSec, key });
   renderLog();
+  renderTimeline();
   updatePhaseBar();
 }
 
@@ -649,13 +755,230 @@ function renderLog() {
   list.scrollTop = list.scrollHeight;
 }
 
+// === TIMELINE ===
+const TIMELINE_ROWS = [
+  { key: 'dispatch_out',          label: '出動',          color: '#E74C3C', type: 'point' },
+  { key: 'patient_contact',       label: '傷病者接触',    color: '#E74C3C', type: 'point' },
+  { keyS: 'assess_primary_start', keyE: 'assess_primary_end',   label: '生理学的評価', color: '#3498DB', type: 'range' },
+  { keyS: 'assess_secondary_start', keyE: 'assess_secondary_end', label: '二次評価',   color: '#9B59B6', type: 'range' },
+  { key: 'rosc',                  label: 'ROSC確認',      color: '#27AE60', type: 'point' },
+  { key: 'airway',                label: '気道確保',      color: '#1ABC9C', type: 'point' },
+  { key: 'assist_ventilation',    label: '補助換気',      color: '#16A085', type: 'point' },
+  { key: 'o2_start',              label: '酸素投与',      color: '#2980B9', type: 'point' },
+  { key: 'cpr_start',             label: 'CPR開始',       color: '#C0392B', type: 'point' },
+  { keyS: 'aed_analysis_start',   keyE: 'aed_analysis_end', label: 'AED解析',      color: '#F39C12', type: 'range' },
+  { key: 'aed_shock',             label: '除細動',        color: '#E67E22', type: 'point' },
+  { keyS: 'iv_access_start',      keyE: 'iv_access_end',    label: '静脈路確保',   color: '#8E44AD', type: 'range' },
+  { key: 'stretcher',             label: 'ストレッチャー収容', color: '#7F8C8D', type: 'point' },
+  { key: 'car_load',              label: '車内収容',      color: '#95A5A6', type: 'point' },
+  { keyS: 'hospital_call_start',  keyE: 'hospital_call_end', label: '病院連絡',    color: '#D4AC0D', type: 'range' },
+  { key: 'transport_start',       label: '現場出発',      color: '#E74C3C', type: 'point' },
+  { key: 'hospital_arrive',       label: '病着',          color: '#27AE60', type: 'point' },
+  { key: 'handover',              label: '引き継ぎ完了',  color: '#2ECC71', type: 'point' },
+];
+
+function renderTimeline() {
+  if (!contactTime && log.length === 0) return;
+
+  // 全ログからmin/maxを取得
+  const times = log.map(l => l.time.getTime());
+  if (times.length === 0) return;
+
+  const tMin = Math.min(...times);
+  const tMax = Math.max(...times);
+  const span = Math.max(tMax - tMin, 60000); // 最低1分
+
+  // 描画対象行を絞る（記録があるもののみ）
+  const recordedKeys = new Set(log.map(l => l.key));
+  const activeRows = TIMELINE_ROWS.filter(row => {
+    if (row.type === 'point') return recordedKeys.has(row.key);
+    return recordedKeys.has(row.keyS) || recordedKeys.has(row.keyE);
+  });
+
+  if (activeRows.length === 0) return;
+
+  // Canvas サイズ
+  const ROW_H = 36;
+  const LABEL_W = 90;
+  const AXIS_H = 28;
+  const PAD_R = 12;
+  const W = Math.max(380, window.innerWidth - 40);
+  const H = activeRows.length * ROW_H + AXIS_H + 8;
+  const CHART_W = W - LABEL_W - PAD_R;
+
+  const canvas = document.getElementById('timelineCanvas');
+  canvas.width = W;
+  canvas.height = H;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+
+  // 背景
+  ctx.fillStyle = '#1A2A3A';
+  ctx.fillRect(0, 0, W, H);
+
+  // ヘルパー：時間→X座標
+  const tx = t => LABEL_W + ((t - tMin) / span) * CHART_W;
+
+  // グリッド線（目盛り）
+  const tickCount = 6;
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= tickCount; i++) {
+    const x = LABEL_W + (i / tickCount) * CHART_W;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H - AXIS_H);
+    ctx.stroke();
+  }
+
+  // 接触ラインを引く
+  if (contactTime) {
+    const cx = tx(contactTime.getTime());
+    ctx.strokeStyle = 'rgba(231,76,60,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(cx, 0);
+    ctx.lineTo(cx, H - AXIS_H);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // ラベル
+    ctx.fillStyle = 'rgba(231,76,60,0.85)';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillText('接触', cx + 2, 10);
+  }
+
+  // 各行を描画
+  activeRows.forEach((row, i) => {
+    const y = i * ROW_H;
+    const midY = y + ROW_H / 2;
+
+    // 行背景（交互）
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.1)';
+    ctx.fillRect(LABEL_W, y, CHART_W, ROW_H);
+
+    // ラベル
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(row.label, LABEL_W - 6, midY + 4);
+    ctx.textAlign = 'left';
+
+    if (row.type === 'point') {
+      // 同じキーの全記録（複数回対応）
+      const items = log.filter(l => l.key === row.key);
+      items.forEach(item => {
+        const x = tx(item.time.getTime());
+        // ダイヤモンド型マーカー
+        ctx.fillStyle = row.color;
+        ctx.beginPath();
+        ctx.moveTo(x, midY - 7);
+        ctx.lineTo(x + 6, midY);
+        ctx.lineTo(x, midY + 7);
+        ctx.lineTo(x - 6, midY);
+        ctx.closePath();
+        ctx.fill();
+        // 時刻ラベル（小）
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '8px sans-serif';
+        ctx.fillText(item.timeStr.slice(0,5), x - 10, midY - 9);
+      });
+
+    } else {
+      // range：開始〜終了バー（複数回分）
+      const starts = log.filter(l => l.key === row.keyS);
+      const ends   = log.filter(l => l.key === row.keyE);
+      const count = Math.max(starts.length, ends.length);
+      for (let n = 0; n < count; n++) {
+        const sItem = starts[n];
+        const eItem = ends[n];
+        const xS = sItem ? tx(sItem.time.getTime()) : null;
+        const xE = eItem ? tx(eItem.time.getTime()) : null;
+        const barH = 12;
+        const barY = midY - barH / 2;
+        const alpha = count > 1 ? 0.6 + n * 0.2 : 1;
+
+        if (xS !== null && xE !== null) {
+          // バー
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = row.color;
+          ctx.beginPath();
+          roundRectCtx(ctx, xS, barY, xE - xS, barH, 3);
+          ctx.fill();
+          // 所要時間ラベル
+          const durSec = Math.floor((eItem.time - sItem.time) / 1000);
+          const dm = Math.floor(durSec / 60), ds = durSec % 60;
+          const durLabel = `${dm}:${String(ds).padStart(2,'0')}`;
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 8px sans-serif';
+          const bw = xE - xS;
+          if (bw > 24) ctx.fillText(durLabel, xS + bw/2 - ctx.measureText(durLabel).width/2, midY + 3);
+          ctx.globalAlpha = 1;
+        } else if (xS !== null) {
+          // 開始のみ（進行中）
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = row.color;
+          ctx.beginPath();
+          ctx.moveTo(xS, midY - 8);
+          ctx.lineTo(xS + 16, midY);
+          ctx.lineTo(xS, midY + 8);
+          ctx.closePath();
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+        // 開始ティック
+        if (xS !== null) {
+          ctx.fillStyle = row.color;
+          ctx.fillRect(xS - 1, barY - 2, 2, barH + 4);
+        }
+      }
+    }
+  });
+
+  // 時間軸
+  const axisY = H - AXIS_H + 4;
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(LABEL_W, H - AXIS_H, CHART_W, AXIS_H);
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= tickCount; i++) {
+    const t = tMin + (i / tickCount) * span;
+    const d = new Date(t);
+    const label = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const x = LABEL_W + (i / tickCount) * CHART_W;
+    ctx.fillText(label, x, axisY + 14);
+  }
+  ctx.textAlign = 'left';
+
+  // 表示
+  document.getElementById('timelineTitle').style.display = '';
+  document.getElementById('timelineWrap').style.display = '';
+}
+
+function roundRectCtx(ctx, x, y, w, h, r) {
+  if (w < 2*r) r = w/2;
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
 // === PHASE BAR ===
 const PHASE_ORDER = ['dispatch','scene','treatment','transport','hospital'];
 const PHASE_KEYS = {
-  dispatch: ['dispatch_notice','dispatch_out'],
-  scene: ['scene_arrive','patient_contact'],
-  treatment: ['assess_primary','assess_secondary','rosc','airway','assist_ventilation','o2_start','cpr_start','aed_analysis','aed_shock','iv_access','stretcher','car_load'],
-  transport: ['hospital_select','transport_start'],
+  dispatch: ['dispatch_out'],
+  scene: ['patient_contact'],
+  treatment: ['assess_primary_start','assess_primary_end','assess_secondary_start','assess_secondary_end','rosc','airway','assist_ventilation','o2_start','cpr_start','aed_analysis_start','aed_analysis_end','aed_shock','iv_access_start','iv_access_end','stretcher','car_load'],
+  transport: ['hospital_call_start','hospital_call_end','transport_start'],
   hospital: ['hospital_arrive','handover']
 };
 
@@ -685,6 +1008,134 @@ function updatePhaseBar() {
   });
 }
 
+// === 汎用トグル計測（複数回対応）===
+const toggleStartTimes = {};
+const toggleCounts = {};  // 各ボタンの計測回数
+
+function addDurRow(listId, count, startT, endT, durStr) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  const row = document.createElement('div');
+  row.className = 'dur-row';
+  row.innerHTML = `
+    <span class="dur-row-num">${count}</span>
+    <span class="dur-row-range">${fmtTime(startT)} ～ ${fmtTime(endT)}</span>
+    <span class="dur-row-val">${durStr}</span>
+  `;
+  list.appendChild(row);
+}
+
+function toggleMeasure(btn) {
+  const state = btn.dataset.state;
+  const now = new Date();
+  const timeStr = fmtTime(now);
+  const keyStart = btn.dataset.keyStart;
+  const keyEnd   = btn.dataset.keyEnd;
+  const bannerId = btn.dataset.banner;
+  const listId   = 'list_' + bannerId.replace('banner_', '');
+
+  const elapsedStr = contactTime ? fmtContactElapsed(Math.floor((now - contactTime) / 1000)) : '---';
+  const elapsedSec = contactTime ? Math.floor((now - contactTime) / 1000) : null;
+
+  if (state === 'idle' || state === 'done') {
+    // 開始（初回 or 再計測）
+    toggleStartTimes[keyStart] = now;
+    if (!toggleCounts[keyStart]) toggleCounts[keyStart] = 0;
+    btn.dataset.state = 'running';
+    btn.classList.remove('pressed');
+    btn.querySelector('.toggle-label').textContent = btn.dataset.labelRunning;
+    btn.querySelector('.btn-time').textContent = `開始 ${timeStr}`;
+    if (!startTime) startTime = now;
+    const count = toggleCounts[keyStart] + 1;
+    const baseName = btn.dataset.labelIdle.replace('開始','').trim();
+    log.push({ time: now, timeStr, label: `${baseName} 開始（${count}回目）`, elapsed: elapsedStr, elapsedSec, key: keyStart });
+    renderLog();
+    renderTimeline();
+    updatePhaseBar();
+
+  } else if (state === 'running') {
+    // 終了
+    btn.dataset.state = 'done';
+    btn.classList.add('pressed');
+
+    const startT = toggleStartTimes[keyStart];
+    const durSec = startT ? Math.floor((now - startT) / 1000) : 0;
+    const m = Math.floor(durSec / 60);
+    const s = durSec % 60;
+    const durStr = `${String(m).padStart(2,'0')}分${String(s).padStart(2,'0')}秒`;
+
+    toggleCounts[keyStart] = (toggleCounts[keyStart] || 0) + 1;
+    const count = toggleCounts[keyStart];
+    const baseName = btn.dataset.labelDone.replace('✅ ','').trim();
+
+    btn.querySelector('.toggle-label').textContent = `✅ ${baseName}（${count}回）`;
+    btn.querySelector('.btn-time').textContent = `完了 ${timeStr} → 再計測可`;
+
+    // バナー・リスト更新
+    const banner = document.getElementById(bannerId);
+    if (banner) {
+      banner.style.display = 'flex';
+      addDurRow(listId, count, startT, now, durStr);
+    }
+
+    log.push({ time: now, timeStr, label: `${baseName}（${count}回目 所要 ${durStr}）`, elapsed: elapsedStr, elapsedSec, key: keyEnd });
+    renderLog();
+    renderTimeline();
+    updatePhaseBar();
+  }
+}
+
+// === 病院連絡トグル（複数回対応）===
+let hospitalCallStartTime = null;
+let hospitalCallCount = 0;
+
+function toggleHospitalCall(btn) {
+  const state = btn.dataset.state;
+  const now = new Date();
+  const timeStr = fmtTime(now);
+  let elapsedStr = contactTime ? fmtContactElapsed(Math.floor((now - contactTime) / 1000)) : '---';
+  let elapsedSec = contactTime ? Math.floor((now - contactTime) / 1000) : null;
+
+  if (state === 'idle' || state === 'done') {
+    // 開始（初回 or 再計測）
+    hospitalCallStartTime = now;
+    btn.dataset.state = 'running';
+    btn.classList.remove('pressed');
+    btn.querySelector('.toggle-label').textContent = '📞 病院連絡中…';
+    btn.querySelector('.btn-time').textContent = `開始 ${timeStr}`;
+    if (!startTime) startTime = now;
+    log.push({ time: now, timeStr, label: `病院連絡開始（${hospitalCallCount + 1}回目）`, elapsed: elapsedStr, elapsedSec, key: 'hospital_call_start' });
+    renderLog();
+    renderTimeline();
+    updatePhaseBar();
+
+  } else if (state === 'running') {
+    // 終了
+    btn.dataset.state = 'done';
+    btn.classList.add('pressed');
+    hospitalCallCount++;
+
+    const durSec = Math.floor((now - hospitalCallStartTime) / 1000);
+    const m = Math.floor(durSec / 60);
+    const s = durSec % 60;
+    const durStr = `${String(m).padStart(2,'0')}分${String(s).padStart(2,'0')}秒`;
+
+    btn.querySelector('.toggle-label').textContent = `✅ 病院選定完了（${hospitalCallCount}回）`;
+    btn.querySelector('.btn-time').textContent = `完了 ${timeStr} → 再計測可`;
+
+    const banner = document.getElementById('callDurationBanner');
+    if (banner) {
+      banner.style.display = 'flex';
+      addDurRow('list_hospital_call', hospitalCallCount, hospitalCallStartTime, now, durStr);
+    }
+
+    log.push({ time: now, timeStr, label: `病院連絡完了（${hospitalCallCount}回目 所要 ${durStr}）`, elapsed: elapsedStr, elapsedSec, key: 'hospital_call_end' });
+    renderLog();
+    renderTimeline();
+    updatePhaseBar();
+  }
+}
+
 // === RESET ===
 function confirmReset() {
   document.getElementById('resetModal').classList.add('active');
@@ -709,10 +1160,58 @@ function doReset() {
   document.getElementById('callType').value = '';
   document.getElementById('severity').value = '';
   renderLog();
+  renderTimeline();
+  document.getElementById('timelineTitle').style.display = 'none';
+  document.getElementById('timelineWrap').style.display = 'none';
+  hospitalCallStartTime = null;
+  hospitalCallCount = 0;
+  // 汎用トグルボタンのリセット
+  Object.keys(toggleStartTimes).forEach(k => delete toggleStartTimes[k]);
+  Object.keys(toggleCounts).forEach(k => delete toggleCounts[k]);
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.dataset.state = 'idle';
+    btn.classList.remove('pressed');
+    if (btn.dataset.labelIdle) {
+      btn.querySelector('.toggle-label').textContent = btn.dataset.labelIdle;
+    }
+    btn.querySelector('.btn-time').textContent = 'タップで開始';
+    const bannerId = btn.dataset.banner;
+    if (bannerId) {
+      const b = document.getElementById(bannerId);
+      if (b) { b.style.display = 'none'; }
+      const listId = 'list_' + bannerId.replace('banner_', '');
+      const l = document.getElementById(listId);
+      if (l) l.innerHTML = '';
+    }
+  });
+  // 病院連絡
+  const btn_hc = document.getElementById('btn_hospital_call');
+  if (btn_hc) { btn_hc.dataset.state = 'idle'; btn_hc.classList.remove('pressed'); btn_hc.querySelector('.toggle-label').textContent = '📞 病院連絡開始'; btn_hc.querySelector('.btn-time').textContent = 'タップで開始'; }
+  const hcBanner = document.getElementById('callDurationBanner');
+  if (hcBanner) { hcBanner.style.display = 'none'; }
+  const hcList = document.getElementById('list_hospital_call');
+  if (hcList) hcList.innerHTML = '';
   document.querySelectorAll('.phase-pill').forEach((p, i) => {
     p.className = 'phase-pill' + (i === 0 ? ' active' : '');
   });
   closeModal();
+}
+
+// rrect: ctx.roundRect の互換ポリフィル
+function rrect(ctx, x, y, w, h, r) {
+  if (w < 2*r) r = w/2;
+  if (h < 2*r) r = h/2;
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
 }
 
 // === PDF GENERATION ===
@@ -723,160 +1222,281 @@ async function generatePDF() {
   }
 
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
-  const timeStr = fmtTime(now);
-
-  const caseNo = document.getElementById('caseNo').value || '未入力';
+  const nowStr = fmtTime(now);
+  const caseNo      = document.getElementById('caseNo').value || '未入力';
   const patientName = document.getElementById('patientName').value || '未入力';
-  const patientAge = document.getElementById('patientAge').value || '未入力';
-  const callType = document.getElementById('callType').value || '未入力';
-  const severity = document.getElementById('severity').value || '未入力';
-  const memo = document.getElementById('memo').value || 'なし';
+  const patientAge  = document.getElementById('patientAge').value || '';
+  const callType    = document.getElementById('callType').value || '未入力';
+  const severity    = document.getElementById('severity').value || '未入力';
+  const memo        = document.getElementById('memo').value || '';
 
-  // Load Japanese font (NotoSans base64 embedded via Google Fonts CDN is not possible in jsPDF directly)
-  // We'll use a workaround with canvas for Japanese text rendering
-  
-  const canvas = document.createElement('canvas');
-  canvas.width = 595 * 2; // A4 at 2x
-  canvas.height = 842 * 2;
-  const ctx = canvas.getContext('2d');
-
-  // Background
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Header bar
-  ctx.fillStyle = '#C0392B';
-  ctx.fillRect(0, 0, canvas.width, 100);
-
-  // Header text
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 36px sans-serif';
-  ctx.fillText('🚑 救急活動 タイムスタンプ記録', 40, 52);
-  ctx.font = '22px sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.8)';
-  ctx.fillText(`訓練記録　${dateStr}　${timeStr}作成`, 40, 80);
-
-  // Badge
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
-  roundRect(ctx, canvas.width - 140, 30, 100, 36, 8);
-  ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 20px sans-serif';
-  ctx.fillText('訓練', canvas.width - 112, 54);
-
-  // Info section
-  let y = 130;
-  ctx.fillStyle = '#F5F5F5';
-  ctx.fillRect(40, y, canvas.width - 80, 170);
-  ctx.fillStyle = '#C0392B';
-  ctx.font = 'bold 20px sans-serif';
-  ctx.fillText('▍ 基本情報', 52, y + 30);
-
-  ctx.fillStyle = '#333';
-  ctx.font = '18px sans-serif';
-  const infoItems = [
-    ['案件番号', caseNo],
-    ['傷病者', `${patientName}　${patientAge}`],
-    ['覚知区分', `${callType}　重症度：${severity}`]
+  // ── 計測履歴サマリー収集 ──
+  const TOGGLE_DEFS = [
+    { keyS:'assess_primary_start',   keyE:'assess_primary_end',   label:'生理学的評価' },
+    { keyS:'assess_secondary_start', keyE:'assess_secondary_end', label:'二次評価' },
+    { keyS:'aed_analysis_start',     keyE:'aed_analysis_end',     label:'AED解析' },
+    { keyS:'iv_access_start',        keyE:'iv_access_end',        label:'静脈路確保' },
+    { keyS:'hospital_call_start',    keyE:'hospital_call_end',    label:'病院連絡' },
   ];
-  infoItems.forEach((item, i) => {
-    ctx.fillStyle = '#999';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.fillText(item[0], 60, y + 60 + i * 38);
-    ctx.fillStyle = '#222';
-    ctx.font = '18px sans-serif';
-    ctx.fillText(item[1], 180, y + 60 + i * 38);
+  const summaries = [];
+  TOGGLE_DEFS.forEach(def => {
+    const starts = log.filter(l => l.key === def.keyS);
+    const ends   = log.filter(l => l.key === def.keyE);
+    if (!starts.length) return;
+    starts.forEach((s, i) => {
+      const e = ends[i];
+      if (e) {
+        const sec = Math.floor((e.time - s.time)/1000);
+        const m = Math.floor(sec/60), ss = sec%60;
+        summaries.push(`${def.label}（${i+1}回目）: ${s.timeStr} 〜 ${e.timeStr}  所要 ${String(m).padStart(2,'0')}分${String(ss).padStart(2,'0')}秒`);
+      } else {
+        summaries.push(`${def.label}（${i+1}回目）: ${s.timeStr} 〜 未完了`);
+      }
+    });
   });
 
-  // Timeline section
-  y = 330;
-  ctx.fillStyle = '#1A2A3A';
-  ctx.fillRect(40, y, canvas.width - 80, 36);
-  ctx.fillStyle = '#D4AC0D';
-  ctx.font = 'bold 18px sans-serif';
-  ctx.fillText('タイムライン記録', 52, y + 24);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 16px sans-serif';
-  ctx.fillText('時刻', 420, y + 24);
-  ctx.fillText('経過時間', 560, y + 24);
+  // ── Canvas設定 ──
+  const W = 595 * 2;
+  const PAGE_H = 842 * 2;
+  const MG = 44;
+  const ROW_H = 42;
+  const HEADER_H = 110;
+  const INFO_H = 170;
+  const TBL_HEAD_H = 44;
+  const MEMO_H = memo ? Math.max(80, Math.ceil(memo.length/36)*28 + 52) : 0;
+  const SUM_H  = summaries.length ? summaries.length*32 + 64 : 0;
+  const FOOTER_H = 54;
+  const total1 = HEADER_H + INFO_H + TBL_HEAD_H + log.length*ROW_H
+    + (SUM_H ? SUM_H+24 : 0) + (MEMO_H ? MEMO_H+24 : 0) + FOOTER_H + 30;
+  const pageCount1 = Math.ceil(total1 / PAGE_H);
+  const canvas1H = pageCount1 * PAGE_H;
 
-  y += 40;
+  const canvas1 = document.createElement('canvas');
+  canvas1.width = W; canvas1.height = canvas1H;
+  const ctx = canvas1.getContext('2d');
+
+  const T = (t, x, y, font, col, align) => {
+    ctx.font = font||'18px sans-serif';
+    ctx.fillStyle = col||'#222';
+    ctx.textAlign = align||'left';
+    ctx.fillText(t, x, y);
+    ctx.textAlign = 'left';
+  };
+  const BG = (y, h, col) => { ctx.fillStyle=col; ctx.fillRect(0,y,W,h); };
+
+  BG(0, canvas1H, '#FFF');
+
+  // ── ページ1 ヘッダー ──
+  BG(0, HEADER_H, '#C0392B');
+  T('救急活動 タイムスタンプ記録', MG, 50, 'bold 32px sans-serif', '#fff');
+  T(`訓練記録　${dateStr}　${nowStr} 作成`, MG, 84, '19px sans-serif', 'rgba(255,255,255,0.8)');
+  ctx.fillStyle='rgba(255,255,255,0.2)';
+  rrect(ctx, W-155,28,118,44,8); ctx.fill();
+  T('【訓練】', W-145, 57, 'bold 22px sans-serif', '#fff');
+
+  // ── 基本情報 ──
+  let y = HEADER_H + 8;
+  BG(y, INFO_H, '#F7F7F7');
+  ctx.strokeStyle='#DDD'; ctx.lineWidth=1; ctx.strokeRect(MG, y, W-MG*2, INFO_H);
+  T('基本情報', MG+14, y+30, 'bold 18px sans-serif', '#C0392B');
+  const infoL = [['案件番号', caseNo],['傷病者', `${patientName}　${patientAge}`]];
+  const infoR = [['覚知区分', callType],['重症度', severity]];
+  infoL.forEach((r,i)=>{ T(r[0], MG+14, y+58+i*46, 'bold 14px sans-serif','#888'); T(r[1], MG+14+115, y+58+i*46,'20px sans-serif','#111'); });
+  infoR.forEach((r,i)=>{ T(r[0], W/2+20, y+58+i*46, 'bold 14px sans-serif','#888'); T(r[1], W/2+20+115, y+58+i*46,'20px sans-serif','#111'); });
+  if (contactTime) {
+    T('傷病者接触時刻', MG+14, y+152, 'bold 14px sans-serif','#888');
+    T(fmtTime(contactTime), MG+14+145, y+152, 'bold 22px sans-serif','#C0392B');
+  }
+
+  // ── 表ヘッダー ──
+  y += INFO_H + 14;
+  BG(y, TBL_HEAD_H, '#1A2A3A');
+  T('活動記録', MG+12, y+28, 'bold 17px sans-serif','#D4AC0D');
+  T('時刻', MG+830, y+28, 'bold 16px sans-serif','#fff');
+  T('接触からの時間', MG+970, y+28, 'bold 14px sans-serif','#fff');
+  y += TBL_HEAD_H;
+
+  // ── ログ行 ──
+  const phColors={dispatch:'#E74C3C',scene:'#E74C3C',treatment:'#3498DB',transport:'#E67E22',hospital:'#27AE60'};
   log.forEach((item, i) => {
-    const rowBg = i % 2 === 0 ? '#FAFAFA' : '#FFFFFF';
-    ctx.fillStyle = rowBg;
-    ctx.fillRect(40, y, canvas.width - 80, 38);
+    BG(y, ROW_H, i%2===0?'#FAFAFA':'#FFF');
+    const ph = Object.keys(PHASE_KEYS).find(p=>PHASE_KEYS[p].includes(item.key));
+    ctx.fillStyle = phColors[ph]||'#BDC3C7';
+    ctx.fillRect(MG, y, 5, ROW_H);
+    T(String(i+1), MG+12, y+27, '13px sans-serif','#AAA');
+    ctx.font='17px sans-serif'; ctx.fillStyle='#222';
+    let lbl=item.label;
+    const maxW = MG+820 - (MG+44);
+    while(ctx.measureText(lbl).width>maxW && lbl.length>4) lbl=lbl.slice(0,-1);
+    if(lbl!==item.label) lbl+='…';
+    ctx.fillText(lbl, MG+44, y+27);
+    T(item.timeStr, MG+830, y+27, 'bold 17px sans-serif','#C0392B');
+    const elCol = !item.elapsedSec && item.elapsedSec!==0?'#5DADE2':item.elapsedSec<0?'#5DADE2':item.elapsedSec===0?'#D4AC0D':'#27AE60';
+    T(item.elapsed||'---', MG+970, y+27, '15px sans-serif', elCol);
+    y += ROW_H;
+  });
+  ctx.strokeStyle='#DDD'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(MG,y); ctx.lineTo(W-MG,y); ctx.stroke();
 
-    // Phase dot color
-    const phaseColors = {
-      dispatch: '#E74C3C', scene: '#3498DB',
-      treatment: '#9B59B6', transport: '#E67E22', hospital: '#27AE60'
-    };
-    const phaseKey = Object.keys(PHASE_KEYS).find(p => PHASE_KEYS[p].includes(item.key));
-    ctx.fillStyle = phaseColors[phaseKey] || '#999';
-    ctx.beginPath();
-    ctx.arc(64, y + 19, 7, 0, Math.PI * 2);
-    ctx.fill();
+  // ── 計測サマリー ──
+  if (summaries.length) {
+    y += 22;
+    BG(y, SUM_H, '#FFFDF0');
+    ctx.strokeStyle='#D4AC0D'; ctx.lineWidth=2; ctx.strokeRect(MG,y,W-MG*2,SUM_H);
+    T('計測履歴サマリー', MG+14, y+36, 'bold 18px sans-serif','#D4AC0D');
+    summaries.forEach((s,i)=>{ T(s, MG+20, y+66+i*32, '15px sans-serif','#333'); });
+    y += SUM_H;
+  }
 
-    ctx.fillStyle = '#222';
-    ctx.font = '18px sans-serif';
-    ctx.fillText(item.label, 80, y + 25);
+  // ── メモ ──
+  if (memo) {
+    y += 22;
+    BG(y, MEMO_H, '#F7F7F7');
+    ctx.strokeStyle='#DDD'; ctx.lineWidth=1; ctx.strokeRect(MG,y,W-MG*2,MEMO_H);
+    T('特記事項・メモ', MG+14, y+30, 'bold 18px sans-serif','#C0392B');
+    for(let s=0,ri=0; s<memo.length; s+=36,ri++) T(memo.slice(s,s+36), MG+20, y+58+ri*28, '16px sans-serif','#333');
+    y += MEMO_H;
+  }
 
-    ctx.fillStyle = '#C0392B';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText(item.timeStr, 400, y + 25);
+  // ── フッター（各ページ末尾に固定） ──
+  for (let p=0; p<pageCount1; p++) {
+    const fy = p*PAGE_H + PAGE_H - FOOTER_H;
+    ctx.fillStyle='#F0F0F0'; ctx.fillRect(0,fy,W,FOOTER_H);
+    ctx.strokeStyle='#CCC'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,fy); ctx.lineTo(W,fy); ctx.stroke();
+    T(`救急活動タイムスタンプ記録　訓練用　案件：${caseNo}　記録数：${log.length}件　${dateStr} ${nowStr}  ${p+1}/${pageCount1+1}ページ`,
+      MG, fy+34, '13px sans-serif','#888');
+  }
 
-    ctx.fillStyle = '#666';
-    ctx.font = '16px sans-serif';
-    ctx.fillText(item.elapsed || '---', 480, y + 25);
+  // ── Page2: タイムライングラフ ──
+  const canvas2 = document.createElement('canvas');
+  canvas2.width = W; canvas2.height = PAGE_H;
+  const c2 = canvas2.getContext('2d');
+  c2.fillStyle='#FFF'; c2.fillRect(0,0,W,PAGE_H);
 
-    y += 38;
+  // グラフヘッダー
+  c2.fillStyle='#1A2A3A'; c2.fillRect(0,0,W,80);
+  c2.font='bold 28px sans-serif'; c2.fillStyle='#D4AC0D';
+  c2.fillText('活動タイムライングラフ', MG, 48);
+  c2.font='17px sans-serif'; c2.fillStyle='rgba(255,255,255,0.7)';
+  c2.fillText(`案件：${caseNo}　${dateStr}`, W-500, 48);
+
+  const times = log.map(l=>l.time.getTime());
+  const tMin=Math.min(...times), tMax=Math.max(...times);
+  const span=Math.max(tMax-tMin, 60000);
+
+  const rKeys=new Set(log.map(l=>l.key));
+  const aRows=TIMELINE_ROWS.filter(row=>{
+    if(row.type==='point') return rKeys.has(row.key);
+    return rKeys.has(row.keyS)||rKeys.has(row.keyE);
   });
 
-  // Memo
-  y += 20;
-  ctx.fillStyle = '#F5F5F5';
-  ctx.fillRect(40, y, canvas.width - 80, 100);
-  ctx.fillStyle = '#C0392B';
-  ctx.font = 'bold 18px sans-serif';
-  ctx.fillText('▍ 特記事項・メモ', 52, y + 28);
-  ctx.fillStyle = '#333';
-  ctx.font = '16px sans-serif';
-  const memoLines = memo.match(/.{1,50}/g) || [memo];
-  memoLines.slice(0, 3).forEach((line, i) => {
-    ctx.fillText(line, 60, y + 54 + i * 24);
+  const LBL_W=190, PAD_R=30, TL_TOP=96, RH=46, AX_H=42;
+  const TL_W=W-LBL_W-PAD_R;
+  const tx=t=>LBL_W+((t-tMin)/span)*TL_W;
+
+  // グリッド
+  for(let i=0;i<=8;i++){
+    const x=LBL_W+(i/8)*TL_W;
+    c2.strokeStyle='rgba(0,0,0,0.06)'; c2.lineWidth=1;
+    c2.beginPath(); c2.moveTo(x,TL_TOP); c2.lineTo(x,TL_TOP+aRows.length*RH); c2.stroke();
+  }
+  // 接触ライン
+  if(contactTime){
+    const cx=tx(contactTime.getTime());
+    c2.strokeStyle='rgba(192,57,43,0.45)'; c2.lineWidth=2; c2.setLineDash([6,4]);
+    c2.beginPath(); c2.moveTo(cx,TL_TOP-6); c2.lineTo(cx,TL_TOP+aRows.length*RH+6); c2.stroke();
+    c2.setLineDash([]);
+    c2.fillStyle='rgba(192,57,43,0.8)'; c2.font='bold 13px sans-serif';
+    c2.fillText('接触',cx+4,TL_TOP-8);
+  }
+
+  aRows.forEach((row,i)=>{
+    const ry=TL_TOP+i*RH, midY=ry+RH/2;
+    c2.fillStyle=i%2===0?'#F8F8F8':'#FFF';
+    c2.fillRect(LBL_W,ry,TL_W,RH);
+    // ラベル
+    c2.fillStyle='#333'; c2.font='12px sans-serif'; c2.textAlign='right';
+    c2.fillText(row.label, LBL_W-8, midY+4);
+    c2.textAlign='left';
+
+    if(row.type==='point'){
+      log.filter(l=>l.key===row.key).forEach(item=>{
+        const x=tx(item.time.getTime());
+        c2.fillStyle=row.color;
+        c2.beginPath(); c2.arc(x,midY,8,0,Math.PI*2); c2.fill();
+        c2.fillStyle='rgba(0,0,0,0.5)'; c2.font='11px sans-serif';
+        c2.fillText(item.timeStr.slice(0,5),x-14,midY-12);
+      });
+    } else {
+      const ss2=log.filter(l=>l.key===row.keyS);
+      const ee2=log.filter(l=>l.key===row.keyE);
+      ss2.forEach((s,n)=>{
+        const e=ee2[n];
+        const xS=tx(s.time.getTime());
+        const bH=16,bY=midY-bH/2;
+        if(e){
+          const xE=tx(e.time.getTime());
+          c2.fillStyle=row.color; c2.globalAlpha=0.85;
+          rrect(c2, xS,bY,xE-xS,bH,4); c2.fill();
+          c2.globalAlpha=1;
+          const ds=Math.floor((e.time-s.time)/1000);
+          const dl=`${Math.floor(ds/60)}:${String(ds%60).padStart(2,'0')}`;
+          c2.fillStyle='#fff'; c2.font='bold 11px sans-serif'; c2.textAlign='center';
+          if(xE-xS>30) c2.fillText(dl,xS+(xE-xS)/2,midY+4);
+          c2.textAlign='left';
+        } else {
+          c2.fillStyle=row.color; c2.globalAlpha=0.6;
+          c2.beginPath(); c2.moveTo(xS,bY); c2.lineTo(xS+18,midY); c2.lineTo(xS,bY+bH); c2.closePath(); c2.fill();
+          c2.globalAlpha=1;
+        }
+        c2.fillStyle='rgba(0,0,0,0.4)'; c2.font='11px sans-serif';
+        c2.fillText(s.timeStr.slice(0,5),xS,bY-3);
+      });
+    }
   });
 
-  // Footer
-  y = canvas.height - 60;
-  ctx.fillStyle = '#EEEEEE';
-  ctx.fillRect(0, y, canvas.width, 60);
-  ctx.fillStyle = '#999';
-  ctx.font = '14px sans-serif';
-  ctx.fillText(`救急活動タイムスタンプ記録システム　訓練用　記録数：${log.length}件`, 40, y + 36);
+  // 時間軸
+  const axY=TL_TOP+aRows.length*RH;
+  c2.fillStyle='#EFEFEF'; c2.fillRect(LBL_W,axY,TL_W,AX_H);
+  c2.strokeStyle='#CCC'; c2.lineWidth=1; c2.beginPath(); c2.moveTo(LBL_W,axY); c2.lineTo(W-PAD_R,axY); c2.stroke();
+  c2.fillStyle='#555'; c2.font='12px sans-serif'; c2.textAlign='center';
+  for(let i=0;i<=8;i++){
+    const t=tMin+(i/8)*span, d=new Date(t);
+    const lb=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    c2.fillText(lb, LBL_W+(i/8)*TL_W, axY+26);
+  }
+  c2.textAlign='left';
 
-  // Convert canvas to PDF
-  const imgData = canvas.toDataURL('image/png');
-  doc.addImage(imgData, 'PNG', 0, 0, 210, 297);
+  // フッター page2
+  c2.fillStyle='#F0F0F0'; c2.fillRect(0,PAGE_H-FOOTER_H,W,FOOTER_H);
+  c2.strokeStyle='#CCC'; c2.lineWidth=1; c2.beginPath(); c2.moveTo(0,PAGE_H-FOOTER_H); c2.lineTo(W,PAGE_H-FOOTER_H); c2.stroke();
+  c2.fillStyle='#888'; c2.font='13px sans-serif';
+  c2.fillText(`救急活動タイムスタンプ記録　訓練用　案件：${caseNo}　${dateStr} ${nowStr}  ${pageCount1+1}/${pageCount1+1}ページ`, MG, PAGE_H-FOOTER_H+34);
 
-  const filename = `救急記録_${caseNo}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.pdf`;
+  // ── PDF組み立て ──
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  for(let p=0; p<pageCount1; p++){
+    if(p>0) doc.addPage();
+    const oc=document.createElement('canvas');
+    oc.width=W; oc.height=PAGE_H;
+    const oc2=oc.getContext('2d');
+    oc2.drawImage(canvas1, 0, -p*PAGE_H);
+    doc.addImage(oc.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297);
+  }
+  doc.addPage();
+  doc.addImage(canvas2.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297);
+
+  const filename=`救急記録_${caseNo}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.pdf`;
   doc.save(filename);
 }
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
   ctx.closePath();
 }
 </script>
