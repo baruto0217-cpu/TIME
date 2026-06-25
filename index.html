@@ -488,12 +488,16 @@
   <button class="act-btn" data-phase="treatment" data-key="ecg12" onclick="stamp(this)">📊 12誘導測定<span class="btn-time" id="t_ecg12">未記録</span></button>
 </div>
 
+<!-- Phase 3a-3: 気道・酸素 -->
+<div class="section-title">気道・酸素</div>
+<div class="btn-grid">
+  <button class="act-btn" data-phase="treatment" data-key="o2_start" onclick="stamp(this)">💨 酸素投与<span class="btn-time" id="t_o2_start">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="assist_ventilation" onclick="stamp(this)">🫁 補助換気開始<span class="btn-time" id="t_assist_ventilation">未記録</span></button>
+</div>
+
 <!-- Phase 3b: 処置 -->
 <div class="section-title">処置</div>
 <div class="btn-grid">
-  <button class="act-btn" data-phase="treatment" data-key="airway" onclick="stamp(this)">💨 気道確保<span class="btn-time" id="t_airway">未記録</span></button>
-  <button class="act-btn" data-phase="treatment" data-key="assist_ventilation" onclick="stamp(this)">🫁 補助換気開始<span class="btn-time" id="t_assist_ventilation">未記録</span></button>
-  <button class="act-btn" data-phase="treatment" data-key="o2_start" onclick="stamp(this)">💨 酸素投与<span class="btn-time" id="t_o2_start">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="cpr_start" onclick="stamp(this)">❤️ CPR開始<span class="btn-time" id="t_cpr_start">未記録</span></button>
   <button class="act-btn toggle-btn" id="btn_aed_analysis" data-phase="treatment" data-state="idle"
     data-key-start="aed_analysis_start" data-key-end="aed_analysis_end"
@@ -512,6 +516,9 @@
     <span class="btn-time">タップで開始</span>
     <span class="btn-elapsed"></span>
   </button>
+  <button class="act-btn" data-phase="treatment" data-key="adrenaline" onclick="stamp(this)">💉 アドレナリン投与<span class="btn-time" id="t_adrenaline">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="advanced_airway" onclick="stamp(this)">🫁 高度気道確保<span class="btn-time" id="t_advanced_airway">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="glucose" onclick="stamp(this)">🍬 ブドウ糖投与<span class="btn-time" id="t_glucose">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="scene_leave" onclick="stamp(this)">🚶 現場離脱<span class="btn-time" id="t_scene_leave">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="stretcher" onclick="stamp(this)">🛏️ ストレッチャー収容<span class="btn-time" id="t_stretcher">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="car_load" onclick="stamp(this)">🚑 車内収容<span class="btn-time" id="t_car_load">未記録</span></button>
@@ -621,9 +628,11 @@ const LABELS = {
   cpr_start: 'CPR開始',
   aed_analysis: 'AED解析',
   aed_shock: '除細動実施',
-  airway: '気道確保',
   iv_access: '静脈路確保',
   o2_start: '酸素投与',
+  adrenaline: 'アドレナリン投与',
+  advanced_airway: '高度気道確保',
+  glucose: 'ブドウ糖投与',
   scene_leave: '現場離脱',
   stretcher: 'ストレッチャー収容',
   rosc: 'ROSC確認',
@@ -781,13 +790,16 @@ const TIMELINE_ROWS = [
   { key: 'ecg',    label: '心電図測定', color: '#117A65', type: 'point' },
   { key: 'ecg12',  label: '12誘導測定', color: '#0E6655', type: 'point' },
   { key: 'rosc',                  label: 'ROSC確認',      color: '#27AE60', type: 'point' },
-  { key: 'airway',                label: '気道確保',      color: '#1ABC9C', type: 'point' },
+
   { key: 'assist_ventilation',    label: '補助換気',      color: '#16A085', type: 'point' },
   { key: 'o2_start',              label: '酸素投与',      color: '#2980B9', type: 'point' },
   { key: 'cpr_start',             label: 'CPR開始',       color: '#C0392B', type: 'point' },
   { keyS: 'aed_analysis_start',   keyE: 'aed_analysis_end', label: 'AED解析',      color: '#F39C12', type: 'range' },
   { key: 'aed_shock',             label: '除細動',        color: '#E67E22', type: 'point' },
   { keyS: 'iv_access_start',      keyE: 'iv_access_end',    label: '静脈路確保',   color: '#8E44AD', type: 'range' },
+  { key: 'adrenaline',     label: 'アドレナリン投与', color: '#C0392B', type: 'point' },
+  { key: 'advanced_airway', label: '高度気道確保',   color: '#16A085', type: 'point' },
+  { key: 'glucose',         label: 'ブドウ糖投与',   color: '#F39C12', type: 'point' },
   { key: 'scene_leave', label: '現場離脱', color: '#E67E22', type: 'point' },
   { key: 'stretcher',             label: 'ストレッチャー収容', color: '#7F8C8D', type: 'point' },
   { key: 'car_load',              label: '車内収容',      color: '#95A5A6', type: 'point' },
@@ -997,7 +1009,7 @@ const PHASE_ORDER = ['dispatch','scene','treatment','transport','hospital'];
 const PHASE_KEYS = {
   dispatch: ['dispatch_out'],
   scene: ['patient_contact'],
-  treatment: ['assess_primary_start','assess_primary_end','assess_secondary_start','assess_secondary_end','spo2','bp','ecg','ecg12','rosc','airway','assist_ventilation','o2_start','cpr_start','aed_analysis_start','aed_analysis_end','aed_shock','iv_access_start','iv_access_end','scene_leave','stretcher','car_load'],
+  treatment: ['assess_primary_start','assess_primary_end','assess_secondary_start','assess_secondary_end','spo2','bp','ecg','ecg12','rosc','assist_ventilation','o2_start','cpr_start','aed_analysis_start','aed_analysis_end','aed_shock','iv_access_start','iv_access_end','adrenaline','advanced_airway','glucose','scene_leave','stretcher','car_load'],
   transport: ['hospital_call_start','hospital_call_end','transport_start'],
   hospital: ['hospital_arrive','handover']
 };
