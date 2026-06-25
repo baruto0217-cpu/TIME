@@ -479,6 +479,15 @@
   <button class="act-btn" data-phase="treatment" data-key="rosc" onclick="stamp(this)">💓 ROSC確認<span class="btn-time" id="t_rosc">未記録</span></button>
 </div>
 
+<!-- Phase 3a-2: バイタル測定 -->
+<div class="section-title">バイタル測定</div>
+<div class="btn-grid">
+  <button class="act-btn" data-phase="treatment" data-key="spo2" onclick="stamp(this)">🩸 SpO2測定<span class="btn-time" id="t_spo2">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="bp" onclick="stamp(this)">💊 血圧測定<span class="btn-time" id="t_bp">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="ecg" onclick="stamp(this)">📈 心電図測定<span class="btn-time" id="t_ecg">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="ecg12" onclick="stamp(this)">📊 12誘導測定<span class="btn-time" id="t_ecg12">未記録</span></button>
+</div>
+
 <!-- Phase 3b: 処置 -->
 <div class="section-title">処置</div>
 <div class="btn-grid">
@@ -503,6 +512,7 @@
     <span class="btn-time">タップで開始</span>
     <span class="btn-elapsed"></span>
   </button>
+  <button class="act-btn" data-phase="treatment" data-key="scene_leave" onclick="stamp(this)">🚶 現場離脱<span class="btn-time" id="t_scene_leave">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="stretcher" onclick="stamp(this)">🛏️ ストレッチャー収容<span class="btn-time" id="t_stretcher">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="car_load" onclick="stamp(this)">🚑 車内収容<span class="btn-time" id="t_car_load">未記録</span></button>
 </div>
@@ -602,6 +612,10 @@ const LABELS = {
   patient_contact: '傷病者接触',
   assess_primary: '生理学的評価開始',
   assess_secondary: '二次評価開始',
+  spo2: 'SpO2測定',
+  bp: '血圧測定',
+  ecg: '心電図測定',
+  ecg12: '12誘導測定',
   assist_ventilation: '補助換気開始',
   car_load: '車内収容',
   cpr_start: 'CPR開始',
@@ -610,6 +624,7 @@ const LABELS = {
   airway: '気道確保',
   iv_access: '静脈路確保',
   o2_start: '酸素投与',
+  scene_leave: '現場離脱',
   stretcher: 'ストレッチャー収容',
   rosc: 'ROSC確認',
   assess_primary_start: '生理学的評価開始',
@@ -761,6 +776,10 @@ const TIMELINE_ROWS = [
   { key: 'patient_contact',       label: '傷病者接触',    color: '#E74C3C', type: 'point' },
   { keyS: 'assess_primary_start', keyE: 'assess_primary_end',   label: '生理学的評価', color: '#3498DB', type: 'range' },
   { keyS: 'assess_secondary_start', keyE: 'assess_secondary_end', label: '二次評価',   color: '#9B59B6', type: 'range' },
+  { key: 'spo2',   label: 'SpO2測定',  color: '#2471A3', type: 'point' },
+  { key: 'bp',     label: '血圧測定',  color: '#1A5276', type: 'point' },
+  { key: 'ecg',    label: '心電図測定', color: '#117A65', type: 'point' },
+  { key: 'ecg12',  label: '12誘導測定', color: '#0E6655', type: 'point' },
   { key: 'rosc',                  label: 'ROSC確認',      color: '#27AE60', type: 'point' },
   { key: 'airway',                label: '気道確保',      color: '#1ABC9C', type: 'point' },
   { key: 'assist_ventilation',    label: '補助換気',      color: '#16A085', type: 'point' },
@@ -769,6 +788,7 @@ const TIMELINE_ROWS = [
   { keyS: 'aed_analysis_start',   keyE: 'aed_analysis_end', label: 'AED解析',      color: '#F39C12', type: 'range' },
   { key: 'aed_shock',             label: '除細動',        color: '#E67E22', type: 'point' },
   { keyS: 'iv_access_start',      keyE: 'iv_access_end',    label: '静脈路確保',   color: '#8E44AD', type: 'range' },
+  { key: 'scene_leave', label: '現場離脱', color: '#E67E22', type: 'point' },
   { key: 'stretcher',             label: 'ストレッチャー収容', color: '#7F8C8D', type: 'point' },
   { key: 'car_load',              label: '車内収容',      color: '#95A5A6', type: 'point' },
   { keyS: 'hospital_call_start',  keyE: 'hospital_call_end', label: '病院連絡',    color: '#D4AC0D', type: 'range' },
@@ -977,7 +997,7 @@ const PHASE_ORDER = ['dispatch','scene','treatment','transport','hospital'];
 const PHASE_KEYS = {
   dispatch: ['dispatch_out'],
   scene: ['patient_contact'],
-  treatment: ['assess_primary_start','assess_primary_end','assess_secondary_start','assess_secondary_end','rosc','airway','assist_ventilation','o2_start','cpr_start','aed_analysis_start','aed_analysis_end','aed_shock','iv_access_start','iv_access_end','stretcher','car_load'],
+  treatment: ['assess_primary_start','assess_primary_end','assess_secondary_start','assess_secondary_end','spo2','bp','ecg','ecg12','rosc','airway','assist_ventilation','o2_start','cpr_start','aed_analysis_start','aed_analysis_end','aed_shock','iv_access_start','iv_access_end','scene_leave','stretcher','car_load'],
   transport: ['hospital_call_start','hospital_call_end','transport_start'],
   hospital: ['hospital_arrive','handover']
 };
@@ -1369,18 +1389,6 @@ async function generatePDF() {
   }
 
   // ── Page2: タイムライングラフ ──
-  const canvas2 = document.createElement('canvas');
-  canvas2.width = W; canvas2.height = PAGE_H;
-  const c2 = canvas2.getContext('2d');
-  c2.fillStyle='#FFF'; c2.fillRect(0,0,W,PAGE_H);
-
-  // グラフヘッダー
-  c2.fillStyle='#1A2A3A'; c2.fillRect(0,0,W,80);
-  c2.font='bold 28px sans-serif'; c2.fillStyle='#D4AC0D';
-  c2.fillText('活動タイムライングラフ', MG, 48);
-  c2.font='17px sans-serif'; c2.fillStyle='rgba(255,255,255,0.7)';
-  c2.fillText(`案件：${caseNo}　${dateStr}`, W-500, 48);
-
   const times = log.map(l=>l.time.getTime());
   const tMin=Math.min(...times), tMax=Math.max(...times);
   const span=Math.max(tMax-tMin, 60000);
@@ -1391,9 +1399,27 @@ async function generatePDF() {
     return rKeys.has(row.keyS)||rKeys.has(row.keyE);
   });
 
-  const LBL_W=190, PAD_R=30, TL_TOP=96, RH=46, AX_H=42;
+  const LBL_W=190, PAD_R=30, TL_TOP=96, RH=52, AX_H=50;
   const TL_W=W-LBL_W-PAD_R;
   const tx=t=>LBL_W+((t-tMin)/span)*TL_W;
+
+  // canvas2の高さをコンテンツに合わせて計算
+  const TL_HEADER_H=80, TL_FOOTER_H=54;
+  const TL_CONTENT_H = TL_HEADER_H + TL_TOP-TL_HEADER_H + aRows.length*RH + AX_H + TL_FOOTER_H + 20;
+  const TL_PAGE_COUNT = Math.ceil(TL_CONTENT_H / PAGE_H);
+  const canvas2H = TL_PAGE_COUNT * PAGE_H;
+
+  const canvas2 = document.createElement('canvas');
+  canvas2.width = W; canvas2.height = canvas2H;
+  const c2 = canvas2.getContext('2d');
+  c2.fillStyle='#FFF'; c2.fillRect(0,0,W,canvas2H);
+
+  // グラフヘッダー
+  c2.fillStyle='#1A2A3A'; c2.fillRect(0,0,W,TL_HEADER_H);
+  c2.font='bold 28px sans-serif'; c2.fillStyle='#D4AC0D';
+  c2.fillText('活動タイムライングラフ', MG, 48);
+  c2.font='17px sans-serif'; c2.fillStyle='rgba(255,255,255,0.7)';
+  c2.fillText(`案件：${caseNo}　${dateStr}`, W-500, 48);
 
   // グリッド
   for(let i=0;i<=8;i++){
@@ -1468,14 +1494,19 @@ async function generatePDF() {
   }
   c2.textAlign='left';
 
-  // フッター page2
-  c2.fillStyle='#F0F0F0'; c2.fillRect(0,PAGE_H-FOOTER_H,W,FOOTER_H);
-  c2.strokeStyle='#CCC'; c2.lineWidth=1; c2.beginPath(); c2.moveTo(0,PAGE_H-FOOTER_H); c2.lineTo(W,PAGE_H-FOOTER_H); c2.stroke();
-  c2.fillStyle='#888'; c2.font='13px sans-serif';
-  c2.fillText(`救急活動タイムスタンプ記録　訓練用　案件：${caseNo}　${dateStr} ${nowStr}  ${pageCount1+1}/${pageCount1+1}ページ`, MG, PAGE_H-FOOTER_H+34);
+  // フッター（各グラフページ末尾）
+  const totalPages = pageCount1 + TL_PAGE_COUNT;
+  for(let p=0; p<TL_PAGE_COUNT; p++){
+    const fy = p*PAGE_H + PAGE_H - TL_FOOTER_H;
+    c2.fillStyle='#F0F0F0'; c2.fillRect(0,fy,W,TL_FOOTER_H);
+    c2.strokeStyle='#CCC'; c2.lineWidth=1; c2.beginPath(); c2.moveTo(0,fy); c2.lineTo(W,fy); c2.stroke();
+    c2.fillStyle='#888'; c2.font='13px sans-serif';
+    c2.fillText(`救急活動タイムスタンプ記録　訓練用　案件：${caseNo}　${dateStr} ${nowStr}　${pageCount1+p+1}/${totalPages}ページ`, MG, fy+34);
+  }
 
   // ── PDF組み立て ──
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  // page1〜: ログ表
   for(let p=0; p<pageCount1; p++){
     if(p>0) doc.addPage();
     const oc=document.createElement('canvas');
@@ -1484,8 +1515,15 @@ async function generatePDF() {
     oc2.drawImage(canvas1, 0, -p*PAGE_H);
     doc.addImage(oc.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297);
   }
-  doc.addPage();
-  doc.addImage(canvas2.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297);
+  // タイムライングラフページ（複数ページ対応）
+  for(let p=0; p<TL_PAGE_COUNT; p++){
+    doc.addPage();
+    const oc=document.createElement('canvas');
+    oc.width=W; oc.height=PAGE_H;
+    const oc2=oc.getContext('2d');
+    oc2.drawImage(canvas2, 0, -p*PAGE_H);
+    doc.addImage(oc.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297);
+  }
 
   const filename=`救急記録_${caseNo}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.pdf`;
   doc.save(filename);
