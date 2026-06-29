@@ -168,6 +168,40 @@
     padding: 0 16px 12px;
   }
   .btn-grid.single { grid-template-columns: 1fr; }
+  .period-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    padding: 0 16px 10px;
+  }
+  .period-btn {
+    background: var(--navy-light);
+    border: 1.5px solid rgba(231,76,60,0.35);
+    border-radius: 8px;
+    color: var(--white);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 8px 4px;
+    text-align: center;
+    line-height: 1.3;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .period-btn:active { transform: scale(0.94); }
+  .period-btn.pressed {
+    background: rgba(231,76,60,0.2);
+    border-color: var(--red-light);
+    color: var(--red-light);
+  }
+  .period-btn .p-time {
+    display: block;
+    font-size: 9px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.45);
+    margin-top: 2px;
+  }
+  .period-btn.pressed .p-time { color: rgba(231,76,60,0.7); }
 
   .act-btn {
     background: var(--navy-light);
@@ -199,6 +233,18 @@
     color: var(--green);
   }
   .act-btn.pressed .btn-time { color: var(--green); }
+  .btn-count {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--red);
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 8px;
+    letter-spacing: 0.5px;
+  }
+  .act-btn.pressed .btn-count { background: var(--green); }
   .btn-elapsed {
     display: block;
     font-size: 9px;
@@ -394,6 +440,41 @@
   .modal-btn { flex: 1; border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; }
   .modal-cancel { background: rgba(255,255,255,0.1); color: var(--white); }
   .modal-confirm { background: var(--red); color: var(--white); }
+  .mode-btn {
+    flex: 1;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .mode-btn.mode-active {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(192,57,43,0.4);
+  }
+  #modeBtn_cpa.mode-active {
+    background: #C0392B;
+    border-color: #E74C3C;
+    box-shadow: 0 0 14px rgba(231,76,60,0.6);
+    animation: pulse-cpa 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-cpa {
+    0%,100% { box-shadow: 0 0 8px rgba(231,76,60,0.5); }
+    50% { box-shadow: 0 0 18px rgba(231,76,60,0.9); }
+  }
+  .cpa-only { display: none; }
+  .normal-only { display: block; }
+  body.mode-cpa .cpa-only { display: block; }
+  body.mode-cpa .normal-only { display: none; }
+  body.mode-cpa .btn-grid .cpa-only { display: contents; }
+  body.mode-cpa .btn-grid .normal-only { display: none; }
 </style>
 </head>
 <body>
@@ -410,6 +491,13 @@
     <span>接触から <span class="elapsed-val" id="elapsedContact">--:--</span></span>
   </div>
 </header>
+
+<!-- Mode Selector -->
+<div id="modeSelectorBar" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:#131f2b;border-bottom:1px solid rgba(255,255,255,0.08);">
+  <span style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:1px;flex-shrink:0;">活動モード</span>
+  <button id="modeBtn_normal" class="mode-btn mode-active" onclick="setMode('normal')">🚑 通常救急</button>
+  <button id="modeBtn_cpa" class="mode-btn" onclick="setMode('cpa')">❤️ CPA</button>
+</div>
 
 <!-- Patient Info -->
 <div class="info-section">
@@ -468,7 +556,7 @@
     <span class="btn-time">タップで開始</span>
     <span class="btn-elapsed"></span>
   </button>
-  <button class="act-btn toggle-btn" id="btn_assess_secondary" data-phase="treatment" data-state="idle"
+  <button class="act-btn toggle-btn normal-only" id="btn_assess_secondary" data-phase="treatment" data-state="idle"
     data-key-start="assess_secondary_start" data-key-end="assess_secondary_end"
     data-label-idle="📋 二次評価開始" data-label-running="📋 二次評価中…" data-label-done="✅ 二次評価完了"
     data-banner="banner_assess_secondary" onclick="toggleMeasure(this)">
@@ -477,6 +565,38 @@
     <span class="btn-elapsed"></span>
   </button>
   <button class="act-btn" data-phase="treatment" data-key="rosc" onclick="stamp(this)">💓 ROSC確認<span class="btn-time" id="t_rosc">未記録</span></button>
+</div>
+
+<!-- CPA専用セクション -->
+<div class="section-title cpa-only">🚨 CPA蘇生処置</div>
+<div class="btn-grid cpa-only">
+  <button class="act-btn" data-phase="treatment" data-key="cpr_start" onclick="stamp(this)" id="cpa_cpr_start">❤️ CPR開始<span class="btn-time" id="t_cpa_cpr_start">未記録</span></button>
+  <button class="act-btn toggle-btn" id="cpa_btn_aed_analysis" data-phase="treatment" data-state="idle"
+    data-key-start="aed_analysis_start" data-key-end="aed_analysis_end"
+    data-label-idle="⚡ AED解析開始" data-label-running="⚡ AED解析中…" data-label-done="✅ AED解析完了"
+    data-banner="banner_aed_analysis" onclick="toggleMeasure(this)">
+    <span class="toggle-label">⚡ AED解析開始</span>
+    <span class="btn-time">タップで開始</span>
+    <span class="btn-elapsed"></span>
+  </button>
+  <button class="act-btn" data-phase="treatment" data-key="aed_shock" onclick="stampCount(this, 'aed_shock')" id="cpa_aed_shock">⚡ 除細動実施<span class="btn-time" id="t_cpa_aed_shock">未記録</span><span class="btn-count" id="c_cpa_aed_shock" style="display:none"></span></button>
+  <button class="act-btn" data-phase="treatment" data-key="adrenaline" onclick="stampCount(this, 'adrenaline')" id="cpa_adrenaline">💉 アドレナリン投与<span class="btn-time" id="t_cpa_adrenaline">未記録</span><span class="btn-count" id="c_cpa_adrenaline" style="display:none"></span></button>
+  <button class="act-btn" data-phase="treatment" data-key="rosc" onclick="stamp(this)" id="cpa_rosc">💓 ROSC確認<span class="btn-time" id="t_cpa_rosc">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="advanced_airway" onclick="stamp(this)" id="cpa_advanced_airway">🫁 高度気道確保<span class="btn-time" id="t_cpa_advanced_airway">未記録</span></button>
+</div>
+<div class="period-grid cpa-only">
+  <button class="period-btn" data-key="period_1" onclick="stampPeriod(this, 1)">1P開始<span class="p-time" id="t_period_1">未記録</span></button>
+  <button class="period-btn" data-key="period_2" onclick="stampPeriod(this, 2)">2P開始<span class="p-time" id="t_period_2">未記録</span></button>
+  <button class="period-btn" data-key="period_3" onclick="stampPeriod(this, 3)">3P開始<span class="p-time" id="t_period_3">未記録</span></button>
+  <button class="period-btn" data-key="period_4" onclick="stampPeriod(this, 4)">4P開始<span class="p-time" id="t_period_4">未記録</span></button>
+  <button class="period-btn" data-key="period_5" onclick="stampPeriod(this, 5)">5P開始<span class="p-time" id="t_period_5">未記録</span></button>
+</div>
+<div class="btn-grid cpa-only">
+  <button class="act-btn toggle-btn" id="cpa_btn_hospital_call" data-phase="transport" data-state="idle" onclick="toggleHospitalCallCPA(this)">
+    <span class="toggle-label">📞 病院連絡開始</span>
+    <span class="btn-time">タップで開始</span>
+    <span class="btn-elapsed"></span>
+  </button>
 </div>
 
 <!-- Phase 3a-2: バイタル測定 -->
@@ -498,16 +618,7 @@
 <!-- Phase 3b: 処置 -->
 <div class="section-title">処置</div>
 <div class="btn-grid">
-  <button class="act-btn" data-phase="treatment" data-key="cpr_start" onclick="stamp(this)">❤️ CPR開始<span class="btn-time" id="t_cpr_start">未記録</span></button>
-  <button class="act-btn toggle-btn" id="btn_aed_analysis" data-phase="treatment" data-state="idle"
-    data-key-start="aed_analysis_start" data-key-end="aed_analysis_end"
-    data-label-idle="⚡ AED解析開始" data-label-running="⚡ AED解析中…" data-label-done="✅ AED解析完了"
-    data-banner="banner_aed_analysis" onclick="toggleMeasure(this)">
-    <span class="toggle-label">⚡ AED解析開始</span>
-    <span class="btn-time">タップで開始</span>
-    <span class="btn-elapsed"></span>
-  </button>
-  <button class="act-btn" data-phase="treatment" data-key="aed_shock" onclick="stamp(this)">⚡ 除細動実施<span class="btn-time" id="t_aed_shock">未記録</span></button>
+  <button class="act-btn" data-phase="treatment" data-key="cpr_start" onclick="stampAndCPA(this)">❤️ CPR開始<span class="btn-time" id="t_cpr_start">未記録</span></button>
   <button class="act-btn toggle-btn" id="btn_iv_access" data-phase="treatment" data-state="idle"
     data-key-start="iv_access_start" data-key-end="iv_access_end"
     data-label-idle="💉 静脈路確保開始" data-label-running="💉 静脈路確保中…" data-label-done="✅ 静脈路確保完了"
@@ -516,8 +627,6 @@
     <span class="btn-time">タップで開始</span>
     <span class="btn-elapsed"></span>
   </button>
-  <button class="act-btn" data-phase="treatment" data-key="adrenaline" onclick="stamp(this)">💉 アドレナリン投与<span class="btn-time" id="t_adrenaline">未記録</span></button>
-  <button class="act-btn" data-phase="treatment" data-key="advanced_airway" onclick="stamp(this)">🫁 高度気道確保<span class="btn-time" id="t_advanced_airway">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="glucose" onclick="stamp(this)">🍬 ブドウ糖投与<span class="btn-time" id="t_glucose">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="scene_leave" onclick="stamp(this)">🚶 現場離脱<span class="btn-time" id="t_scene_leave">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="stretcher" onclick="stamp(this)">🛏️ ストレッチャー収容<span class="btn-time" id="t_stretcher">未記録</span></button>
@@ -536,6 +645,10 @@
 <div id="banner_aed_analysis" class="dur-banner dur-banner-multi" style="display:none">
   <div class="dur-label">⚡ AED解析　計測履歴</div>
   <div class="dur-list" id="list_aed_analysis"></div>
+</div>
+<div id="banner_aed_to_shock" class="dur-banner dur-banner-multi" style="display:none">
+  <div class="dur-label">⚡ AED解析完了 → 除細動　所要時間履歴</div>
+  <div class="dur-list" id="list_aed_to_shock"></div>
 </div>
 <div id="banner_iv_access" class="dur-banner dur-banner-multi" style="display:none">
   <div class="dur-label">💉 静脈路確保　計測履歴</div>
@@ -644,6 +757,11 @@ const LABELS = {
   aed_analysis_end: 'AED解析完了',
   iv_access_start: '静脈路確保開始',
   iv_access_end: '静脈路確保完了',
+  period_1: '1ピリオド開始',
+  period_2: '2ピリオド開始',
+  period_3: '3ピリオド開始',
+  period_4: '4ピリオド開始',
+  period_5: '5ピリオド開始',
   hospital_call_start: '病院連絡開始',
   hospital_call_end: '病院連絡完了（選定）',
   transport_start: '現場出発',
@@ -682,8 +800,126 @@ function fmtTime(date) {
   return `${h}:${m}:${s}`;
 }
 
+// === MODE ===
+let currentMode = 'normal';
+function setMode(mode) {
+  currentMode = mode;
+  document.body.classList.toggle('mode-cpa', mode === 'cpa');
+  document.getElementById('modeBtn_normal').classList.toggle('mode-active', mode === 'normal');
+  document.getElementById('modeBtn_cpa').classList.toggle('mode-active', mode === 'cpa');
+  // ヘッダーバッジ更新
+  const badge = document.querySelector('.badge');
+  if (mode === 'cpa') {
+    badge.textContent = '訓練 / CPA';
+    badge.style.background = 'rgba(231,76,60,0.4)';
+  } else {
+    badge.textContent = '訓練';
+    badge.style.background = '';
+  }
+}
+
 clockInterval = setInterval(updateClock, 1000);
 updateClock();
+
+// === ピリオドスタンプ ===
+function stampPeriod(btn, num) {
+  const now = new Date();
+  const timeStr = fmtTime(now);
+  const key = `period_${num}`;
+  const label = LABELS[key];
+
+  if (!startTime) startTime = now;
+  const elapsedSec = contactTime ? Math.floor((now - contactTime) / 1000) : null;
+  const elapsedStr = contactTime ? fmtContactElapsed(elapsedSec) : '---';
+
+  btn.classList.add('pressed');
+  btn.querySelector('.p-time').textContent = timeStr.slice(0,5);
+
+  log.push({ time: now, timeStr, label, elapsed: elapsedStr, elapsedSec, key });
+  renderLog();
+  renderTimeline();
+  updatePhaseBar();
+}
+
+// === CPR開始 → CPAモード自動切替 ===
+function stampAndCPA(btn) {
+  stamp(btn);
+  if (currentMode !== 'cpa') {
+    setMode('cpa');
+    // モード切替の視覚フィードバック
+    const bar = document.getElementById('modeSelectorBar');
+    bar.style.transition = 'background 0.3s';
+    bar.style.background = 'rgba(192,57,43,0.3)';
+    setTimeout(() => { bar.style.background = ''; }, 800);
+  }
+}
+
+// === カウント付きスタンプ ===
+const stampCounts = {};  // key -> 回数
+
+function stampCount(btn, key) {
+  const now = new Date();
+  const timeStr = fmtTime(now);
+  const label = LABELS[key] || key;
+
+  if (!startTime) startTime = now;
+  if (key === 'patient_contact') contactTime = now;
+
+  // カウントアップ
+  stampCounts[key] = (stampCounts[key] || 0) + 1;
+  const count = stampCounts[key];
+
+  // 経過時間
+  const elapsedSec = contactTime ? Math.floor((now - contactTime) / 1000) : null;
+  const elapsedStr = contactTime ? fmtContactElapsed(elapsedSec) : '---';
+
+  // ボタン更新（同じkeyの全ボタンを同期）
+  document.querySelectorAll(`[data-key="${key}"]`).forEach(b => {
+    b.classList.add('pressed');
+    const bt = b.querySelector('.btn-time');
+    const bc = b.querySelector('.btn-count');
+    if (bt) bt.textContent = timeStr;
+    if (bc) {
+      bc.style.display = 'block';
+      bc.textContent = `${count}回実施`;
+    }
+  });
+  // cpa_プレフィックスのIDも同期
+  document.querySelectorAll(`[id^="cpa_"][id$="${key.replace('_','')}"], [id^="cpa_${key.split('_')[0]}"]`).forEach(b => {
+    const bc = b.querySelector('.btn-count');
+    if (bc) { bc.style.display='block'; bc.textContent=`${count}回実施`; }
+  });
+
+  // 除細動実施 → 直前のAED解析完了からの時間を計算して履歴に追記
+  if (key === 'aed_shock') {
+    const aedEnds = log.filter(l => l.key === 'aed_analysis_end');
+    if (aedEnds.length > 0) {
+      const lastEnd = aedEnds[aedEnds.length - 1];
+      const durSec = Math.floor((now - lastEnd.time) / 1000);
+      const m = Math.floor(durSec / 60), s = durSec % 60;
+      const durStr = `${String(m).padStart(2,'0')}分${String(s).padStart(2,'0')}秒`;
+      const banner = document.getElementById('banner_aed_to_shock');
+      const list = document.getElementById('list_aed_to_shock');
+      if (banner) banner.style.display = 'flex';
+      if (list) {
+        const row = document.createElement('div');
+        row.className = 'dur-row';
+        row.innerHTML = `
+          <span class="dur-row-num">${count}</span>
+          <span class="dur-row-range">解析完了 ${lastEnd.timeStr} → 除細動 ${timeStr}</span>
+          <span class="dur-row-val">${durStr}</span>
+        `;
+        list.appendChild(row);
+      }
+    }
+  }
+
+  // ログ記録
+  log.push({ time: now, timeStr, label: `${label}（${count}回目）`, elapsed: elapsedStr, elapsedSec, key });
+  renderLog();
+  renderTimeline();
+  updatePhaseBar();
+}
 
 // === STAMP ===
 function stamp(btn) {
@@ -1009,7 +1245,7 @@ const PHASE_ORDER = ['dispatch','scene','treatment','transport','hospital'];
 const PHASE_KEYS = {
   dispatch: ['dispatch_out'],
   scene: ['patient_contact'],
-  treatment: ['assess_primary_start','assess_primary_end','assess_secondary_start','assess_secondary_end','spo2','bp','ecg','ecg12','rosc','assist_ventilation','o2_start','cpr_start','aed_analysis_start','aed_analysis_end','aed_shock','iv_access_start','iv_access_end','adrenaline','advanced_airway','glucose','scene_leave','stretcher','car_load'],
+  treatment: ['period_1','period_2','period_3','period_4','period_5','assess_primary_start','assess_primary_end','assess_secondary_start','assess_secondary_end','spo2','bp','ecg','ecg12','rosc','assist_ventilation','o2_start','cpr_start','aed_analysis_start','aed_analysis_end','aed_shock','iv_access_start','iv_access_end','adrenaline','advanced_airway','glucose','scene_leave','stretcher','car_load'],
   transport: ['hospital_call_start','hospital_call_end','transport_start'],
   hospital: ['hospital_arrive','handover']
 };
@@ -1038,6 +1274,21 @@ function updatePhaseBar() {
     if (donePhases.has(p)) pill.classList.add('done');
     else if (activePhases.has(p)) pill.classList.add('active');
   });
+}
+
+// === CPA内病院連絡トグル（toggleHospitalCallと同期）===
+function toggleHospitalCallCPA(btn) {
+  // メインの病院連絡ボタンと同じ処理を呼ぶ
+  const mainBtn = document.getElementById('btn_hospital_call');
+  toggleHospitalCall(btn);
+  // メインボタンのUIも同期
+  if (mainBtn && btn.dataset.state !== mainBtn.dataset.state) {
+    mainBtn.dataset.state = btn.dataset.state;
+    mainBtn.querySelector('.toggle-label').textContent = btn.querySelector('.toggle-label').textContent;
+    mainBtn.querySelector('.btn-time').textContent = btn.querySelector('.btn-time').textContent;
+    if (btn.classList.contains('pressed')) mainBtn.classList.add('pressed');
+    else mainBtn.classList.remove('pressed');
+  }
 }
 
 // === 汎用トグル計測（複数回対応）===
@@ -1191,6 +1442,21 @@ function doReset() {
   document.getElementById('patientAge').value = '';
   document.getElementById('callType').value = '';
   document.getElementById('severity').value = '';
+  // カウントリセット
+  Object.keys(stampCounts).forEach(k => delete stampCounts[k]);
+  const aedShockBanner = document.getElementById('banner_aed_to_shock');
+  if (aedShockBanner) aedShockBanner.style.display = 'none';
+  const aedShockList = document.getElementById('list_aed_to_shock');
+  if (aedShockList) aedShockList.innerHTML = '';
+  document.querySelectorAll('.period-btn').forEach(pb => {
+    pb.classList.remove('pressed');
+    const pt = pb.querySelector('.p-time');
+    if (pt) pt.textContent = '未記録';
+  });
+  document.querySelectorAll('.btn-count').forEach(bc => {
+    bc.style.display = 'none';
+    bc.textContent = '';
+  });
   renderLog();
   renderTimeline();
   document.getElementById('timelineTitle').style.display = 'none';
