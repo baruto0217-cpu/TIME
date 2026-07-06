@@ -843,7 +843,9 @@ function stampPeriod(btn, num) {
 
 // === CPR開始 → CPAモード自動切替 ===
 function stampAndCPA(btn) {
+  // 通常CPRボタンを記録
   stamp(btn);
+
   if (currentMode !== 'cpa') {
     setMode('cpa');
     // モード切替の視覚フィードバック
@@ -851,6 +853,14 @@ function stampAndCPA(btn) {
     bar.style.transition = 'background 0.3s';
     bar.style.background = 'rgba(192,57,43,0.3)';
     setTimeout(() => { bar.style.background = ''; }, 800);
+  }
+
+  // CPA側のCPRボタンも同時に作動（UI同期）
+  const cpaCprBtn = document.getElementById('cpa_cpr_start');
+  if (cpaCprBtn && !cpaCprBtn.classList.contains('pressed')) {
+    cpaCprBtn.classList.add('pressed');
+    const bt = cpaCprBtn.querySelector('.btn-time');
+    if (bt) bt.textContent = btn.querySelector('.btn-time').textContent;
   }
 }
 
