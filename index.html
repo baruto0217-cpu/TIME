@@ -556,12 +556,6 @@
   </div>
 </header>
 
-<!-- Suggest Bar -->
-<div id="suggestBar">
-  <span class="suggest-label">次のアクション候補</span>
-  <div class="suggest-chips" id="suggestChips"></div>
-</div>
-
 <!-- Mode Selector -->
 <div id="modeSelectorBar" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:#131f2b;border-bottom:1px solid rgba(255,255,255,0.08);">
   <span style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:1px;flex-shrink:0;">活動モード</span>
@@ -606,6 +600,12 @@
   <div class="phase-pill" data-phase="treatment">処置</div>
   <div class="phase-pill" data-phase="transport">搬送</div>
   <div class="phase-pill" data-phase="hospital">病着</div>
+</div>
+
+<!-- Suggest Bar -->
+<div id="suggestBar">
+  <span class="suggest-label">次のアクション候補</span>
+  <div class="suggest-chips" id="suggestChips"></div>
 </div>
 
 <!-- Phase 1+2: 出動・現場到着 -->
@@ -2042,6 +2042,7 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
   ctx.closePath();
 }
+updateSuggest();
 </script>
 </body>
 </html>
