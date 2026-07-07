@@ -234,17 +234,21 @@
   }
   .act-btn.pressed .btn-time { color: var(--green); }
   .btn-count {
-    display: block;
-    margin-top: 3px;
-    font-size: 11px;
+    display: inline-block;
+    margin-top: 2px;
+    font-size: 10px;
     font-weight: 700;
     background: var(--red);
     color: #fff;
     border-radius: 10px;
-    padding: 1px 8px;
-    letter-spacing: 0.5px;
+    padding: 1px 5px;
+    letter-spacing: 0;
+    white-space: nowrap;
   }
   .act-btn.pressed .btn-count { background: var(--green); }
+  /* 回数カウント付きボタンのフォント縮小 */
+  .has-count { font-size: 11px !important; }
+  .has-count .btn-time { font-size: 9px !important; }
   .btn-elapsed {
     display: block;
     font-size: 9px;
@@ -579,8 +583,8 @@
     <span class="btn-time">タップで開始</span>
     <span class="btn-elapsed"></span>
   </button>
-  <button class="act-btn" data-phase="treatment" data-key="aed_shock" onclick="stampCount(this, 'aed_shock')" id="cpa_aed_shock">⚡ 除細動実施<span class="btn-time" id="t_cpa_aed_shock">未記録</span><span class="btn-count" id="c_cpa_aed_shock" style="display:none"></span></button>
-  <button class="act-btn" data-phase="treatment" data-key="adrenaline" onclick="stampCount(this, 'adrenaline')" id="cpa_adrenaline">💉 アドレナリン投与<span class="btn-time" id="t_cpa_adrenaline">未記録</span><span class="btn-count" id="c_cpa_adrenaline" style="display:none"></span></button>
+  <button class="act-btn has-count" data-phase="treatment" data-key="aed_shock" onclick="stampCount(this, 'aed_shock')" id="cpa_aed_shock">⚡ 除細動実施<span class="btn-time" id="t_cpa_aed_shock">未記録</span><span class="btn-count" id="c_cpa_aed_shock" style="display:none"></span></button>
+  <button class="act-btn has-count" data-phase="treatment" data-key="adrenaline" onclick="stampCount(this, 'adrenaline')" id="cpa_adrenaline">💉 アドレナリン投与<span class="btn-time" id="t_cpa_adrenaline">未記録</span><span class="btn-count" id="c_cpa_adrenaline" style="display:none"></span></button>
   <button class="act-btn" data-phase="treatment" data-key="rosc" onclick="stamp(this)" id="cpa_rosc">💓 ROSC確認<span class="btn-time" id="t_cpa_rosc">未記録</span></button>
   <button class="act-btn" data-phase="treatment" data-key="advanced_airway" onclick="stamp(this)" id="cpa_advanced_airway">🫁 高度気道確保<span class="btn-time" id="t_cpa_advanced_airway">未記録</span></button>
 </div>
