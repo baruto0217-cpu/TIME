@@ -473,6 +473,66 @@
     0%,100% { box-shadow: 0 0 8px rgba(231,76,60,0.5); }
     50% { box-shadow: 0 0 18px rgba(231,76,60,0.9); }
   }
+  /* === SUGGEST BAR === */
+  #suggestBar {
+    display: none;
+    padding: 8px 16px;
+    background: #0F1D2B;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  #suggestBar::-webkit-scrollbar { display: none; }
+  .suggest-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--gold);
+    font-weight: 700;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 5px;
+  }
+  .suggest-chips { display: flex; gap: 6px; }
+  .suggest-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--white);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    min-width: 70px;
+    text-align: center;
+  }
+  .suggest-chip:active { transform: scale(0.95); background: rgba(255,255,255,0.12); }
+  .suggest-chip.chip-done {
+    border-color: var(--green);
+    color: var(--green);
+    background: rgba(39,174,96,0.08);
+  }
+  .suggest-chip.chip-urgent {
+    border-color: var(--red-light);
+    color: var(--white);
+    background: rgba(231,76,60,0.18);
+    animation: pulse-border 1.2s ease-in-out infinite;
+  }
+  .suggest-chip-time {
+    font-size: 9px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.4);
+    margin-top: 2px;
+  }
+  .chip-done .suggest-chip-time { color: rgba(39,174,96,0.6); }
+
   .cpa-only { display: none; }
   .normal-only { display: block; }
   body.mode-cpa .cpa-only { display: block; }
@@ -495,6 +555,12 @@
     <span>接触から <span class="elapsed-val" id="elapsedContact">--:--</span></span>
   </div>
 </header>
+
+<!-- Suggest Bar -->
+<div id="suggestBar">
+  <span class="suggest-label">次のアクション候補</span>
+  <div class="suggest-chips" id="suggestChips"></div>
+</div>
 
 <!-- Mode Selector -->
 <div id="modeSelectorBar" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:#131f2b;border-bottom:1px solid rgba(255,255,255,0.08);">
@@ -820,6 +886,7 @@ function setMode(mode) {
     badge.textContent = '訓練';
     badge.style.background = '';
   }
+  updateSuggest();
 }
 
 clockInterval = setInterval(updateClock, 1000);
@@ -843,6 +910,7 @@ function stampPeriod(btn, num) {
   renderLog();
   renderTimeline();
   updatePhaseBar();
+  updateSuggest();
 }
 
 // === CPR開始 → CPAモード自動切替 ===
@@ -933,6 +1001,7 @@ function stampCount(btn, key) {
   renderLog();
   renderTimeline();
   updatePhaseBar();
+  updateSuggest();
 }
 
 // === STAMP ===
@@ -986,6 +1055,7 @@ function stamp(btn) {
   renderLog();
   renderTimeline();
   updatePhaseBar();
+  updateSuggest();
 }
 
 // 接触基準の経過時間フォーマット（前後を表示）
@@ -1254,6 +1324,143 @@ function roundRectCtx(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+// === SUGGEST BAR ===
+// 通常モードの流れ
+const SUGGEST_FLOW_NORMAL = [
+  { key: 'dispatch_out',         label: '🚑 出動',           urgent: false },
+  { key: 'patient_contact',      label: '👤 傷病者接触',     urgent: true  },
+  { key: 'assess_primary_start', label: '🔍 生理学的評価',   urgent: false },
+  { key: 'spo2',                 label: '🩸 SpO2測定',       urgent: false },
+  { key: 'bp',                   label: '💊 血圧測定',       urgent: false },
+  { key: 'ecg',                  label: '📈 心電図測定',     urgent: false },
+  { key: 'o2_start',             label: '💨 酸素投与',       urgent: false },
+  { key: 'assist_ventilation',   label: '🫁 補助換気',       urgent: false },
+  { key: 'iv_access_start',      label: '💉 静脈路確保',     urgent: false },
+  { key: 'hospital_call_start',  label: '📞 病院連絡',       urgent: false },
+  { key: 'car_load',             label: '🚑 車内収容',       urgent: false },
+  { key: 'transport_start',      label: '🚗 現場出発',       urgent: false },
+  { key: 'hospital_arrive',      label: '🏥 病着',           urgent: false },
+  { key: 'handover',             label: '📋 引き継ぎ完了',   urgent: false },
+];
+// CPAモードの流れ
+const SUGGEST_FLOW_CPA = [
+  { key: 'dispatch_out',         label: '🚑 出動',           urgent: false },
+  { key: 'patient_contact',      label: '👤 傷病者接触',     urgent: true  },
+  { key: 'assess_primary_start', label: '🔍 生理学的評価',   urgent: false },
+  { key: 'cpr_start',            label: '❤️ CPR開始',        urgent: true  },
+  { key: 'aed_analysis_start',   label: '⚡ AED解析',        urgent: true  },
+  { key: 'aed_shock',            label: '⚡ 除細動',         urgent: true  },
+  { key: 'adrenaline',           label: '💉 アドレナリン',   urgent: false },
+  { key: 'advanced_airway',      label: '🫁 高度気道確保',   urgent: false },
+  { key: 'iv_access_start',      label: '💉 静脈路確保',     urgent: false },
+  { key: 'hospital_call_start',  label: '📞 病院連絡',       urgent: false },
+  { key: 'rosc',                 label: '💓 ROSC確認',       urgent: false },
+  { key: 'car_load',             label: '🚑 車内収容',       urgent: false },
+  { key: 'transport_start',      label: '🚗 現場出発',       urgent: false },
+  { key: 'hospital_arrive',      label: '🏥 病着',           urgent: false },
+  { key: 'handover',             label: '📋 引き継ぎ完了',   urgent: false },
+];
+
+function updateSuggest() {
+  const bar = document.getElementById('suggestBar');
+  const chips = document.getElementById('suggestChips');
+  if (!bar || !chips) return;
+
+  const flow = currentMode === 'cpa' ? SUGGEST_FLOW_CPA : SUGGEST_FLOW_NORMAL;
+  const recordedKeys = new Set(log.map(l => l.key));
+
+  // トグル系ボタンのキー一覧（開始→完了の2回押し）
+  const TOGGLE_START_KEYS = new Set([
+    'assess_primary_start','assess_secondary_start',
+    'aed_analysis_start','iv_access_start','hospital_call_start'
+  ]);
+
+  // 記録済みかどうか判定
+  // トグル系（開始→完了）は_endが記録されたら完了、それ以外は_startそのものを確認
+  const isDone = (key) => {
+    if (TOGGLE_START_KEYS.has(key)) {
+      const endKey = key.replace('_start', '_end');
+      return recordedKeys.has(endKey);
+    }
+    return recordedKeys.has(key);
+  };
+
+  // 測定中かどうか判定（開始済みだが完了未記録）
+  const isRunning = (key) => {
+    if (TOGGLE_START_KEYS.has(key)) {
+      const endKey = key.replace('_start', '_end');
+      return recordedKeys.has(key) && !recordedKeys.has(endKey);
+    }
+    return false;
+  };
+
+  // 未実施のみ最大5件表示
+  const suggestions = [];
+  for (const item of flow) {
+    if (!isDone(item.key) && suggestions.length < 5) {
+      suggestions.push(item);
+    }
+  }
+
+  if (suggestions.length === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+
+  chips.innerHTML = suggestions.map(item => {
+    const running = isRunning(item.key);
+    const chipClass = running ? 'suggest-chip chip-urgent'
+      : item.urgent ? 'suggest-chip chip-urgent'
+      : 'suggest-chip';
+    const timeLabel = running ? '測定中…' : '';
+    return `<button class="${chipClass}" onclick="triggerSuggest('${item.key}')">
+      ${item.label}
+      <span class="suggest-chip-time">${timeLabel}</span>
+    </button>`;
+  }).join('');
+}
+
+function triggerSuggest(key) {
+  let btn = null;
+
+  // 1. data-key-start を持つトグルボタン（生理学的評価・静脈路確保・AED解析など）
+  btn = document.querySelector(`[data-key-start="${key}"]`);
+  if (btn) {
+    btn.click();
+    return;
+  }
+
+  // 2. 病院連絡（toggleHospitalCall）
+  if (key === 'hospital_call_start') {
+    btn = document.getElementById('cpa_btn_hospital_call') || document.getElementById('btn_hospital_call');
+    if (btn) btn.click();
+    return;
+  }
+
+  // 3. 除細動・アドレナリン（stampCount系）
+  if (key === 'aed_shock' || key === 'adrenaline') {
+    const cpaId = key === 'aed_shock' ? 'cpa_aed_shock' : 'cpa_adrenaline';
+    btn = document.getElementById(cpaId) || document.querySelector(`[data-key="${key}"]`);
+    if (btn) btn.click();
+    return;
+  }
+
+  // 4. CPR開始（stampAndCPA）
+  if (key === 'cpr_start') {
+    btn = document.getElementById('cpa_cpr_start') || document.querySelector(`[data-key="cpr_start"]`);
+    if (btn) btn.click();
+    return;
+  }
+
+  // 5. 通常のdata-keyボタン（表示されているボタンのみ）
+  const allBtns = document.querySelectorAll(`[data-key="${key}"]`);
+  for (const b of allBtns) {
+    if (b.offsetParent !== null) {
+      btn = b;
+      break;
+    }
+  }
+  if (btn) btn.click();
+}
+
 // === PHASE BAR ===
 const PHASE_ORDER = ['dispatch','scene','treatment','transport','hospital'];
 const PHASE_KEYS = {
@@ -1349,6 +1556,7 @@ function toggleMeasure(btn) {
     renderLog();
     renderTimeline();
     updatePhaseBar();
+    updateSuggest();
 
   } else if (state === 'running') {
     // 終了
@@ -1379,6 +1587,7 @@ function toggleMeasure(btn) {
     renderLog();
     renderTimeline();
     updatePhaseBar();
+    updateSuggest();
   }
 }
 
@@ -1405,6 +1614,7 @@ function toggleHospitalCall(btn) {
     renderLog();
     renderTimeline();
     updatePhaseBar();
+    updateSuggest();
 
   } else if (state === 'running') {
     // 終了
@@ -1430,6 +1640,7 @@ function toggleHospitalCall(btn) {
     renderLog();
     renderTimeline();
     updatePhaseBar();
+    updateSuggest();
   }
 }
 
@@ -1475,6 +1686,7 @@ function doReset() {
   renderLog();
   renderTimeline();
   document.getElementById('timelineTitle').style.display = 'none';
+  document.getElementById('suggestBar').style.display = 'none';
   document.getElementById('timelineWrap').style.display = 'none';
   hospitalCallStartTime = null;
   hospitalCallCount = 0;
