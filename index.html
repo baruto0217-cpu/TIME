@@ -1444,9 +1444,10 @@ function doReset() {
   log = [];
   startTime = null;
   contactTime = null;
-  document.querySelectorAll('.act-btn').forEach(btn => {
+  document.querySelectorAll('.act-btn:not(.toggle-btn)').forEach(btn => {
     btn.classList.remove('pressed');
-    btn.querySelector('.btn-time').textContent = '未記録';
+    const bt = btn.querySelector('.btn-time');
+    if (bt) bt.textContent = '未記録';
   });
   document.getElementById('elapsedDispatch').textContent = '--:--';
   document.getElementById('elapsedContact').textContent = '--:--';
