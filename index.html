@@ -475,7 +475,7 @@
   }
   /* === SUGGEST BAR === */
   #suggestBar {
-    display: none;
+    display: block;
     padding: 8px 16px;
     background: #0F1D2B;
     border-bottom: 1px solid rgba(255,255,255,0.07);
@@ -485,6 +485,50 @@
     scrollbar-width: none;
   }
   #suggestBar::-webkit-scrollbar { display: none; }
+  #repeatBar {
+    padding: 6px 16px 8px;
+    background: #0a1520;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .repeat-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.3);
+    font-weight: 700;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 5px;
+  }
+  .repeat-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+  .repeat-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    min-width: 60px;
+    text-align: center;
+  }
+  .repeat-chip:active { transform: scale(0.94); background: rgba(255,255,255,0.1); }
+  .repeat-chip .r-count {
+    font-size: 9px;
+    color: var(--gold);
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .repeat-chip.r-running {
+    border-color: var(--red-light);
+    color: var(--white);
+    background: rgba(231,76,60,0.15);
+  }
   .suggest-label {
     font-size: 9px;
     letter-spacing: 1.5px;
@@ -606,6 +650,12 @@
 <div id="suggestBar">
   <span class="suggest-label">次のアクション候補</span>
   <div class="suggest-chips" id="suggestChips"></div>
+</div>
+
+<!-- Repeat Bar -->
+<div id="repeatBar">
+  <span class="repeat-label">繰り返し実施</span>
+  <div class="repeat-chips" id="repeatChips"></div>
 </div>
 
 <!-- Phase 1+2: 出動・現場到着 -->
@@ -887,6 +937,7 @@ function setMode(mode) {
     badge.style.background = '';
   }
   updateSuggest();
+  updateRepeat();
 }
 
 clockInterval = setInterval(updateClock, 1000);
@@ -911,6 +962,7 @@ function stampPeriod(btn, num) {
   renderTimeline();
   updatePhaseBar();
   updateSuggest();
+  updateRepeat();
 }
 
 // === CPR開始 → CPAモード自動切替 ===
@@ -1461,6 +1513,65 @@ function triggerSuggest(key) {
   if (btn) btn.click();
 }
 
+// === REPEAT BAR ===
+const REPEAT_ITEMS_NORMAL = [
+  { key: 'assess_primary_start', label: '🔍 生理学的評価', isToggle: true, btnId: 'btn_assess_primary' },
+  { key: 'hospital_call_start',  label: '📞 病院連絡',     isToggle: true, btnId: 'btn_hospital_call' },
+  { key: 'bp',               label: '💊 血圧',     trigger: (b) => stamp(b) },
+  { key: 'spo2',             label: '🩸 SpO2',     trigger: (b) => stamp(b) },
+  { key: 'ecg',              label: '📈 心電図',   trigger: (b) => stamp(b) },
+  { key: 'ecg12',            label: '📊 12誘導',   trigger: (b) => stamp(b) },
+];
+const REPEAT_ITEMS_CPA = [
+  { key: 'assess_primary_start', label: '🔍 生理学的評価', isToggle: true, btnId: 'btn_assess_primary' },
+  { key: 'cpr_start',        label: '❤️ CPR',       trigger: (b) => { const rb = document.getElementById('cpa_cpr_start'); if(rb) rb.click(); else stamp(b); } },
+  { key: 'aed_analysis',     label: '⚡ AED解析',  isToggle: true, btnId: 'cpa_btn_aed_analysis' },
+  { key: 'aed_shock',        label: '⚡ 除細動',   trigger: (b) => { const rb = document.getElementById('cpa_aed_shock'); if(rb) rb.click(); } },
+  { key: 'adrenaline',       label: '💉 Adr',      trigger: (b) => { const rb = document.getElementById('cpa_adrenaline'); if(rb) rb.click(); } },
+  { key: 'hospital_call_start', label: '📞 病院連絡', isToggle: true, btnId: 'cpa_btn_hospital_call' },
+  { key: 'bp',               label: '💊 血圧',     trigger: (b) => stamp(b) },
+  { key: 'spo2',             label: '🩸 SpO2',     trigger: (b) => stamp(b) },
+];
+
+function updateRepeat() {
+  const chips = document.getElementById('repeatChips');
+  if (!chips) return;
+  const items = currentMode === 'cpa' ? REPEAT_ITEMS_CPA : REPEAT_ITEMS_NORMAL;
+  chips.innerHTML = items.map(item => {
+    // 回数取得
+    const count = stampCounts[item.key] || 0;
+    // トグル系の場合：測定中かどうか
+    let running = false;
+    if (item.isToggle) {
+      const btn = document.getElementById(item.btnId);
+      running = btn && btn.dataset.state === 'running';
+    }
+    const cls = running ? 'repeat-chip r-running' : 'repeat-chip';
+    const countLabel = count > 0 ? `${count}回` : '';
+    const runLabel = running ? '測定中…' : countLabel;
+    return `<button class="${cls}" data-repeat-key="${item.key}" onclick="triggerRepeat('${item.key}')">
+      ${item.label}
+      <span class="r-count">${runLabel}</span>
+    </button>`;
+  }).join('');
+}
+
+function triggerRepeat(key) {
+  const items = currentMode === 'cpa' ? REPEAT_ITEMS_CPA : REPEAT_ITEMS_NORMAL;
+  const item = items.find(i => i.key === key);
+  if (!item) return;
+  if (item.isToggle) {
+    const btn = document.getElementById(item.btnId);
+    if (btn) btn.click();
+  } else if (item.trigger) {
+    // ダミーボタンを作ってstampに渡す（ログ記録用）
+    const dummy = document.querySelector(`[data-key="${key}"]`);
+    if (dummy) { item.trigger(dummy); }
+  }
+  // 少し待ってからUI更新
+  setTimeout(updateRepeat, 100);
+}
+
 // === PHASE BAR ===
 const PHASE_ORDER = ['dispatch','scene','treatment','transport','hospital'];
 const PHASE_KEYS = {
@@ -1687,6 +1798,7 @@ function doReset() {
   renderTimeline();
   document.getElementById('timelineTitle').style.display = 'none';
   document.getElementById('suggestBar').style.display = 'none';
+  updateRepeat();
   document.getElementById('timelineWrap').style.display = 'none';
   hospitalCallStartTime = null;
   hospitalCallCount = 0;
@@ -2043,6 +2155,7 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 updateSuggest();
+updateRepeat();
 </script>
 </body>
 </html>
