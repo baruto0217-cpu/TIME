@@ -261,7 +261,7 @@
   .act-btn.pressed .btn-elapsed { color: rgba(39,174,96,0.8); }
   .dur-banner {
     margin: 0 16px 8px;
-    background: rgba(212,172,13,0.1);
+    background: var(--navy-light);
     border: 1.5px solid var(--gold);
     border-radius: 10px;
     padding: 9px 14px;
@@ -277,15 +277,15 @@
     grid-template-columns: 18px 1fr auto;
     align-items: center;
     gap: 8px;
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.06);
     border-radius: 6px;
     padding: 5px 8px;
     font-size: 12px;
   }
   .dur-row-num { color: var(--gold); font-weight:700; font-size:11px; text-align:center; }
-  .dur-row-range { color: var(--gray); font-size:11px; }
+  .dur-row-range { color: rgba(255,255,255,0.75); font-size:11px; }
   .dur-row-val { color: var(--white); font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .dur-range { font-size:10px; color:var(--gray); }
+  .dur-range { font-size:10px; color:rgba(255,255,255,0.6); }
   .dur-val { font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--white); white-space:nowrap; }
 
   .toggle-btn[data-state="idle"] { border-color: rgba(255,255,255,0.15); }
@@ -382,6 +382,102 @@
 
   /* === MEMO === */
   .memo-wrap { padding: 0 16px 12px; }
+  /* === MEMO === */
+  .memo-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .memo-tab {
+    flex: 1;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.5);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .memo-tab.active {
+    background: var(--navy-light);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  #drawingWrap {
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #1e2d3d;
+    touch-action: none;
+  }
+  #drawingCanvas {
+    display: block;
+    width: 100%;
+    cursor: crosshair;
+  }
+  .draw-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: #162030;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    flex-wrap: wrap;
+  }
+  .draw-color {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.1s;
+    flex-shrink: 0;
+  }
+  .draw-color.selected { border-color: #fff; transform: scale(1.2); }
+  .draw-size {
+    -webkit-appearance: none;
+    width: 70px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.3);
+    outline: none;
+  }
+  .draw-btn {
+    font-size: 11px;
+    padding: 3px 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.1);
+    cursor: pointer;
+    font-weight: 700;
+    color: #fff;
+    border-color: rgba(255,255,255,0.2);
+  }
+  .draw-btn:active { background: rgba(255,255,255,0.2); }
+  .draw-btn.eraser-on {
+    background: #E74C3C;
+    color: #fff;
+    border-color: #C0392B;
+  }
+  .resize-handle {
+    width: 100%;
+    height: 12px;
+    background: rgba(255,255,255,0.05);
+    cursor: ns-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .resize-handle::after {
+    content: '⋯';
+    color: rgba(255,255,255,0.2);
+    font-size: 14px;
+    letter-spacing: 3px;
+  }
   textarea.memo-input {
     width: 100%;
     background: var(--navy-light);
@@ -392,7 +488,7 @@
     padding: 10px 12px;
     resize: vertical;
     outline: none;
-    min-height: 70px;
+    min-height: 120px;
     font-family: inherit;
   }
   textarea.memo-input:focus { border-color: var(--gold); }
@@ -415,7 +511,7 @@
     transition: all 0.15s;
   }
   .action-btn:active { transform: scale(0.96); }
-  .btn-reset { background: rgba(255,255,255,0.08); color: var(--light); }
+  .btn-reset { background: #000; color: #fff; border: 1.5px solid rgba(255,255,255,0.35); font-weight:700; }
   .btn-pdf { background: var(--red); color: var(--white); grid-column: 1 / -1; font-size: 15px; }
 
   /* === MODAL === */
@@ -594,10 +690,6 @@
     <span class="badge">訓練</span>
   </div>
   <div class="clock" id="clock">--:--:--</div>
-  <div class="elapsed-bar">
-    <span>出動から <span class="elapsed-val" id="elapsedDispatch">--:--</span></span>
-    <span>接触から <span class="elapsed-val" id="elapsedContact">--:--</span></span>
-  </div>
 </header>
 
 <!-- Mode Selector -->
@@ -605,36 +697,6 @@
   <span style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:1px;flex-shrink:0;">活動モード</span>
   <button id="modeBtn_normal" class="mode-btn mode-active" onclick="setMode('normal')">🚑 通常救急</button>
   <button id="modeBtn_cpa" class="mode-btn" onclick="setMode('cpa')">❤️ CPA</button>
-</div>
-
-<!-- Patient Info -->
-<div class="info-section">
-  <div class="info-row">
-    <span class="info-label">案件番号</span>
-    <input type="text" class="info-input" id="caseNo" placeholder="例）R06-0001">
-  </div>
-  <div class="info-row">
-    <span class="info-label">傷病者</span>
-    <input type="text" class="info-input" id="patientName" placeholder="氏名または仮称">
-    <select class="info-input" id="patientAge" style="width:80px;flex:none">
-      <option value="">年代</option>
-      <option>10代</option><option>20代</option><option>30代</option>
-      <option>40代</option><option>50代</option><option>60代</option>
-      <option>70代</option><option>80代</option><option>90代以上</option>
-    </select>
-  </div>
-  <div class="info-row">
-    <span class="info-label">覚知区分</span>
-    <select class="info-input" id="callType">
-      <option value="">選択</option>
-      <option>急病</option><option>外傷</option><option>交通事故</option>
-      <option>転院搬送</option><option>その他</option>
-    </select>
-    <select class="info-input" id="severity" style="width:80px;flex:none">
-      <option value="">重症度</option>
-      <option>軽症</option><option>中等症</option><option>重症</option><option>重篤</option>
-    </select>
-  </div>
 </div>
 
 <!-- Phase Indicator -->
@@ -656,6 +718,37 @@
 <div id="repeatBar">
   <span class="repeat-label">繰り返し実施</span>
   <div class="repeat-chips" id="repeatChips"></div>
+</div>
+
+<!-- Memo -->
+<div class="section-title">メモ</div>
+<div class="memo-wrap">
+  <div class="memo-tabs">
+    <button class="memo-tab active" onclick="switchMemoTab('text', this)">✏️ テキスト</button>
+    <button class="memo-tab" onclick="switchMemoTab('draw', this)">🖊️ 手書き</button>
+  </div>
+  <!-- テキスト -->
+  <div id="memoTextWrap">
+    <textarea class="memo-input" id="memo" placeholder="訓練メモ・特記事項など..."></textarea>
+    <div class="resize-handle" id="textResizeHandle"></div>
+  </div>
+  <!-- 手書き -->
+  <div id="memoDrawWrap" style="display:none">
+    <div id="drawingWrap">
+      <div class="draw-toolbar">
+        <div class="draw-color selected" style="background:#fff;border-color:#aaa" data-color="#FFFFFF" onclick="setDrawColor(this)"></div>
+        <div class="draw-color" style="background:#C0392B" data-color="#C0392B" onclick="setDrawColor(this)"></div>
+        <div class="draw-color" style="background:#2471A3" data-color="#2471A3" onclick="setDrawColor(this)"></div>
+        <div class="draw-color" style="background:#27AE60" data-color="#27AE60" onclick="setDrawColor(this)"></div>
+        <div class="draw-color" style="background:#F39C12" data-color="#F39C12" onclick="setDrawColor(this)"></div>
+        <input type="range" class="draw-size" id="drawSize" min="1" max="20" value="3">
+        <button class="draw-btn" id="eraserBtn" onclick="setDrawEraser()">🧹 消しゴム</button>
+        <button class="draw-btn" onclick="clearCanvas()">全消去</button>
+      </div>
+      <canvas id="drawingCanvas" height="300"></canvas>
+    </div>
+    <div class="resize-handle" id="drawResizeHandle"></div>
+  </div>
 </div>
 
 <!-- Phase 1+2: 出動・現場到着 -->
@@ -798,10 +891,24 @@
   <button class="act-btn" data-phase="hospital" data-key="handover" onclick="stamp(this)">📋 引き継ぎ完了<span class="btn-time" id="t_handover">未記録</span></button>
 </div>
 
-<!-- Memo -->
-<div class="section-title">メモ</div>
-<div class="memo-wrap">
-  <textarea class="memo-input" id="memo" placeholder="訓練メモ・特記事項など..."></textarea>
+<!-- Patient Info -->
+<div class="info-section">
+  <div class="info-row">
+    <span class="info-label">案件番号</span>
+    <input type="text" class="info-input" id="caseNo" placeholder="例）R06-0001">
+  </div>
+  <div class="info-row">
+    <span class="info-label">覚知区分</span>
+    <select class="info-input" id="callType">
+      <option value="">選択</option>
+      <option>急病</option><option>外傷</option><option>交通事故</option>
+      <option>転院搬送</option><option>その他</option>
+    </select>
+    <select class="info-input" id="severity" style="width:80px;flex:none">
+      <option value="">重症度</option>
+      <option>軽症</option><option>中等症</option><option>重症</option><option>重篤</option>
+    </select>
+  </div>
 </div>
 
 <!-- Log -->
@@ -897,14 +1004,7 @@ function updateClock() {
   const s = String(now.getSeconds()).padStart(2,'0');
   document.getElementById('clock').textContent = `${h}:${m}:${s}`;
 
-  if (startTime) {
-    const diff = Math.floor((now - startTime) / 1000);
-    document.getElementById('elapsedDispatch').textContent = fmtElapsed(diff);
-  }
-  if (contactTime) {
-    const diff = Math.floor((now - contactTime) / 1000);
-    document.getElementById('elapsedContact').textContent = fmtElapsed(diff);
-  }
+
 }
 
 function fmtElapsed(sec) {
@@ -1067,7 +1167,6 @@ function stamp(btn) {
   }
   if (key === 'patient_contact') {
     contactTime = now;
-    document.getElementById('elapsedContact').textContent = '00:00';
     // 接触記録後、それ以前のログの elapsed を再計算して更新
     log.forEach(item => {
       const diffSec = Math.floor((item.time - contactTime) / 1000);
@@ -1771,12 +1870,8 @@ function doReset() {
     const bt = btn.querySelector('.btn-time');
     if (bt) bt.textContent = '未記録';
   });
-  document.getElementById('elapsedDispatch').textContent = '--:--';
-  document.getElementById('elapsedContact').textContent = '--:--';
   document.getElementById('memo').value = '';
   document.getElementById('caseNo').value = '';
-  document.getElementById('patientName').value = '';
-  document.getElementById('patientAge').value = '';
   document.getElementById('callType').value = '';
   document.getElementById('severity').value = '';
   // カウントリセット
@@ -1868,6 +1963,8 @@ async function generatePDF() {
   const callType    = document.getElementById('callType').value || '未入力';
   const severity    = document.getElementById('severity').value || '未入力';
   const memo        = document.getElementById('memo').value || '';
+  const drawCanvas  = document.getElementById('drawingCanvas');
+  const hasDrawing  = drawCanvas && drawCanvas.width > 0;
 
   // ── 計測履歴サマリー収集 ──
   const TOGGLE_DEFS = [
@@ -2156,6 +2253,140 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 updateSuggest();
 updateRepeat();
+
+// === MEMO TABS ===
+function switchMemoTab(mode, btn) {
+  document.querySelectorAll('.memo-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('memoTextWrap').style.display = mode === 'text' ? '' : 'none';
+  document.getElementById('memoDrawWrap').style.display = mode === 'draw' ? '' : 'none';
+  if (mode === 'draw') initCanvas();
+}
+
+// === DRAWING ===
+let drawCtx = null, drawing = false, drawColor = '#FFFFFF', drawEraser = false;
+
+function initCanvas() {
+  const canvas = document.getElementById('drawingCanvas');
+  if (!canvas) return;
+  // 幅を親に合わせる
+  const wrap = document.getElementById('drawingWrap');
+  canvas.width = wrap.clientWidth;
+  drawCtx = canvas.getContext('2d');
+  drawCtx.fillStyle = '#1e2d3d';
+  drawCtx.fillRect(0, 0, canvas.width, canvas.height);
+  drawCtx.lineCap = 'round';
+  drawCtx.lineJoin = 'round';
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', doDraw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+  canvas.addEventListener('touchstart', startDraw, { passive: false });
+  canvas.addEventListener('touchmove', doDraw, { passive: false });
+  canvas.addEventListener('touchend', endDraw);
+}
+
+function getPos(e, canvas) {
+  const r = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / r.width;
+  const scaleY = canvas.height / r.height;
+  if (e.touches) {
+    return {
+      x: (e.touches[0].clientX - r.left) * scaleX,
+      y: (e.touches[0].clientY - r.top) * scaleY
+    };
+  }
+  return { x: (e.clientX - r.left) * scaleX, y: (e.clientY - r.top) * scaleY };
+}
+
+function startDraw(e) {
+  e.preventDefault();
+  drawing = true;
+  const canvas = document.getElementById('drawingCanvas');
+  const pos = getPos(e, canvas);
+  drawCtx.beginPath();
+  drawCtx.moveTo(pos.x, pos.y);
+}
+
+function doDraw(e) {
+  if (!drawing) return;
+  e.preventDefault();
+  const canvas = document.getElementById('drawingCanvas');
+  const pos = getPos(e, canvas);
+  const size = parseInt(document.getElementById('drawSize').value);
+  drawCtx.lineWidth = drawEraser ? size * 4 : size;
+  drawCtx.strokeStyle = drawEraser ? '#1e2d3d' : drawColor;
+  drawCtx.lineTo(pos.x, pos.y);
+  drawCtx.stroke();
+  drawCtx.beginPath();
+  drawCtx.moveTo(pos.x, pos.y);
+}
+
+function endDraw(e) { drawing = false; }
+
+function setDrawColor(el) {
+  drawEraser = false;
+  const btn = document.getElementById('eraserBtn');
+  if (btn) btn.classList.remove('eraser-on');
+  drawColor = el.dataset.color;
+  document.querySelectorAll('.draw-color').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function setDrawEraser() {
+  drawEraser = !drawEraser;
+  const btn = document.getElementById('eraserBtn');
+  if (btn) btn.classList.toggle('eraser-on', drawEraser);
+  if (drawEraser) {
+    document.querySelectorAll('.draw-color').forEach(c => c.classList.remove('selected'));
+  }
+}
+
+function clearCanvas() {
+  const canvas = document.getElementById('drawingCanvas');
+  if (drawCtx) { drawCtx.fillStyle = '#1e2d3d'; drawCtx.fillRect(0, 0, canvas.width, canvas.height); }
+}
+
+// === RESIZE HANDLES ===
+function makeResizable(handleId, targetId, isCanvas) {
+  const handle = document.getElementById(handleId);
+  const target = document.getElementById(targetId);
+  if (!handle || !target) return;
+  let startY, startH;
+
+  const onMove = (e) => {
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const newH = Math.max(80, startH + (clientY - startY));
+    if (isCanvas) {
+      target.height = newH * (target.width / target.getBoundingClientRect().width);
+      target.style.height = newH + 'px';
+    } else {
+      target.style.height = newH + 'px';
+    }
+  };
+  const onEnd = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('mouseup', onEnd);
+    document.removeEventListener('touchend', onEnd);
+  };
+  handle.addEventListener('mousedown', (e) => {
+    startY = e.clientY;
+    startH = isCanvas ? target.getBoundingClientRect().height : target.offsetHeight;
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+  });
+  handle.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+    startH = isCanvas ? target.getBoundingClientRect().height : target.offsetHeight;
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+  }, { passive: false });
+}
+
+makeResizable('textResizeHandle', 'memo', false);
+makeResizable('drawResizeHandle', 'drawingCanvas', true);
 </script>
 </body>
 </html>
