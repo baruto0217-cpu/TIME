@@ -1958,8 +1958,6 @@ async function generatePDF() {
   const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
   const nowStr = fmtTime(now);
   const caseNo      = document.getElementById('caseNo').value || '未入力';
-  const patientName = document.getElementById('patientName').value || '未入力';
-  const patientAge  = document.getElementById('patientAge').value || '';
   const callType    = document.getElementById('callType').value || '未入力';
   const severity    = document.getElementById('severity').value || '未入力';
   const memo        = document.getElementById('memo').value || '';
@@ -2035,8 +2033,8 @@ async function generatePDF() {
   BG(y, INFO_H, '#F7F7F7');
   ctx.strokeStyle='#DDD'; ctx.lineWidth=1; ctx.strokeRect(MG, y, W-MG*2, INFO_H);
   T('基本情報', MG+14, y+30, 'bold 18px sans-serif', '#C0392B');
-  const infoL = [['案件番号', caseNo],['傷病者', `${patientName}　${patientAge}`]];
-  const infoR = [['覚知区分', callType],['重症度', severity]];
+  const infoL = [['案件番号', caseNo],['覚知区分', callType]];
+  const infoR = [['重症度', severity],['モード', currentMode === 'cpa' ? 'CPA' : '通常救急']];
   infoL.forEach((r,i)=>{ T(r[0], MG+14, y+58+i*46, 'bold 14px sans-serif','#888'); T(r[1], MG+14+115, y+58+i*46,'20px sans-serif','#111'); });
   infoR.forEach((r,i)=>{ T(r[0], W/2+20, y+58+i*46, 'bold 14px sans-serif','#888'); T(r[1], W/2+20+115, y+58+i*46,'20px sans-serif','#111'); });
   if (contactTime) {
